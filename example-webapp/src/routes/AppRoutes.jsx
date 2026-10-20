@@ -1,16 +1,28 @@
 import { BrowserRouter as Router, Route, Routes } from "react-router-dom";
-import Login from "../components/Login";
-import Home from "../components/Home";
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
+import HomePage from "../pages/home/HomePage";
+import TutorApplicationPage from "../pages/tutors/TutorApplicationPage";
+import TutorDetailPage from "../pages/tutors/TutorDetailPage";
+import TutorListPage from "../pages/tutors/TutorListPage";
+import AdminTutorApplicationsPage from "../pages/admin/AdminTutorApplicationsPage";
 
-const AppRoutes = () => {
+export default function AppRoutes() {
   return (
     <Router>
       <Routes>
-        <Route path="/login" element={<Login />} />
-        <Route path="/" element={<Home />} />
+        <Route path="/" element={<HomePage />} />
+        <Route path="/tutors" element={<TutorListPage />} />
+        <Route path="/tutors/:id" element={<TutorDetailPage />} />
+        <Route path="/become-tutor" element={<TutorApplicationPage />} />
+        <Route
+          path="/admin/tutor-applications"
+          element={<AdminTutorApplicationsPage />}
+        />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/register" element={<RegisterPage />} />
+        <Route path="*" element={<HomePage />} />
       </Routes>
     </Router>
   );
-};
-
-export default AppRoutes;
+}
