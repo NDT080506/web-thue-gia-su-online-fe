@@ -23,8 +23,14 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
 
     try {
       if (mode === 'login') {
+        let inputName = (displayName || email || '').trim();
+        // Tự động chuyển 'admin' thành 'admin@gmail.com' nếu người dùng gõ admin
+        if (inputName.toLowerCase() === 'admin') {
+          inputName = 'admin@gmail.com';
+        }
+
         // 1. Đăng nhập qua BE: POST /auth/login với displayName hoặc email
-        const loginRes = await authApi.login(displayName || email, password);
+        const loginRes = await authApi.login(inputName, password);
         const token = loginRes?.accessToken || loginRes?.token || authApi.getToken();
         const tokenRole = getRoleFromToken(token);
         
@@ -201,9 +207,47 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
 
           {mode === 'login' && (
             <div style={{ fontSize: '0.78rem', color: '#475569', background: '#f8fafc', padding: '10px 12px', borderRadius: 6, border: '1px solid #e2e8f0', marginBottom: 16 }}>
-              <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 4 }}>💡 Tài khoản kiểm thử:</div>
-              <div>• <strong>Admin (Quản trị):</strong> <code style={{ color: '#dc2626' }}>admin@gmail.com</code> / <code>12345678</code></div>
-              <div>• <strong>Gia sư:</strong> <code style={{ color: '#7c3aed' }}>user001</code> / <code>12345678</code></div>
+              <div style={{ fontWeight: 700, color: '#1e293b', marginBottom: 6 }}>💡 Điền nhanh tài khoản kiểm thử:</div>
+              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayName('admin@gmail.com');
+                    setPassword('12345678');
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    background: '#fee2e2',
+                    color: '#b91c1c',
+                    border: '1px solid #fca5a5',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}
+                >
+                  🛡️ Admin (admin@gmail.com)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDisplayName('user001');
+                    setPassword('12345678');
+                  }}
+                  style={{
+                    padding: '4px 10px',
+                    borderRadius: 4,
+                    background: '#f3e8ff',
+                    color: '#7c3aed',
+                    border: '1px solid #d8b4fe',
+                    cursor: 'pointer',
+                    fontSize: '0.75rem',
+                    fontWeight: 700
+                  }}
+                >
+                  👨‍🏫 Gia sư (user001)
+                </button>
+              </div>
             </div>
           )}
 

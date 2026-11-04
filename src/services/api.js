@@ -192,6 +192,27 @@ export const courseApi = {
     return await request('/course-enrollments/me');
   },
 
+  // GET /course-enrollments/me/course/:courseId (Lấy thông tin ghi danh khóa học của học sinh hiện tại)
+  getMyEnrollmentByCourse: async (courseId) => {
+    return await request(`/course-enrollments/me/course/${courseId}`);
+  },
+
+  // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)
+  updateProgress: async (enrollmentId, progressPercent) => {
+    return await request(`/course-enrollments/${enrollmentId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
+  },
+
+  // PATCH /course-enrollments/course/:courseId/progress (Cập nhật tiến độ theo courseId)
+  updateProgressByCourse: async (courseId, progressPercent) => {
+    return await request(`/course-enrollments/course/${courseId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
+  },
+
   // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)
   completeEnrollment: async (enrollmentId) => {
     return await request(`/course-enrollments/tutor/${enrollmentId}/complete`, {
@@ -412,6 +433,52 @@ export const adminApi = {
   getAllPackages: async () => {
     return await request('/brokerage-packages/admin/get-all');
   },
+
+  // GET /admin/disputes (Lấy danh sách khiếu nại tranh chấp cho Admin)
+  getDisputes: async (status) => {
+    return await request(status ? `/admin/disputes?status=${status}` : '/admin/disputes');
+  },
+
+  // GET /admin/disputes/:id (Xem chi tiết khiếu nại)
+  getDisputeDetail: async (id) => {
+    return await request(`/admin/disputes/${id}`);
+  },
+
+  // PATCH /admin/disputes/:id/approve (Chấp thuận khiếu nại & hoàn tiền)
+  approveDispute: async (id) => {
+    return await request(`/admin/disputes/${id}/approve`, {
+      method: 'PATCH',
+    });
+  },
+
+  // PATCH /admin/disputes/:id/reject (Từ chối / Bác bỏ khiếu nại)
+  rejectDispute: async (id) => {
+    return await request(`/admin/disputes/${id}/reject`, {
+      method: 'PATCH',
+    });
+  },
+
+  // GET /admin/action-logs (Lấy nhật ký kiểm toán hệ thống)
+  getActionLogs: async (params = {}) => {
+    const query = new URLSearchParams();
+    Object.entries(params).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, val);
+      }
+    });
+    const queryString = query.toString();
+    return await request(`/admin/action-logs${queryString ? `?${queryString}` : ''}`);
+  },
+
+  // GET /admin/action-logs/:id
+  getActionLogById: async (id) => {
+    return await request(`/admin/action-logs/${id}`);
+  },
+
+  // GET /admin/withdrawals (Lấy danh sách yêu cầu rút tiền của gia sư)
+  getWithdrawals: async () => {
+    return await request('/admin/withdrawals');
+  },
 };
 
 /* ==================== 11. WALLET & DEPOSIT ==================== */
@@ -495,6 +562,35 @@ export const tutorApplicationApi = {
   deleteMyApplication: async () => {
     return await request('/tutor-applications', {
       method: 'DELETE',
+    });
+  },
+};
+
+
+/* ==================== 15. DISPUTE API (STUDENT) ==================== */
+export const disputeApi = {
+  // POST /disputes (Tạo khiếu nại mới)
+  createDispute: async (data) => {
+    return await request('/disputes', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    });
+  },
+
+  // GET /disputes/me (Danh sách khiếu nại của học sinh hiện tại)
+  getMyDisputes: async () => {
+    return await request('/disputes/me');
+  },
+
+  // GET /disputes/:id (Xem chi tiết khiếu nại)
+  getMyDispute: async (id) => {
+    return await request(`/disputes/${id}`);
+  },
+
+  // PATCH /disputes/:id/cancel (Hủy khiếu nại)
+  cancelDispute: async (id) => {
+    return await request(`/disputes/${id}/cancel`, {
+      method: 'PATCH',
     });
   },
 };

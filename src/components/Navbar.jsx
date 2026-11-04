@@ -527,6 +527,57 @@ export default function Navbar({
                 </button>
               </div>
 
+              {/* Admin Quick Switch Portal Button */}
+              {currentUser?.role === 'ADMIN' ? (
+                <button
+                  onClick={() => {
+                    if (onOpenAdmin) onOpenAdmin();
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#fee2e2',
+                    color: '#b91c1c',
+                    border: '1px solid #fca5a5',
+                    borderRadius: 6,
+                    padding: '7px 12px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Chuyển sang Giao diện Quản trị viên (Admin Portal)"
+                >
+                  <ShieldCheck size={16} />
+                  <span className="hide-mobile">Trang Quản Trị</span>
+                </button>
+              ) : (
+                <button
+                  onClick={() => {
+                    if (onOpenAdmin) onOpenAdmin();
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 5,
+                    background: '#f8fafc',
+                    color: '#475569',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 6,
+                    padding: '6px 10px',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s'
+                  }}
+                  title="Mở Bảng điều khiển Quản trị viên (Admin Portal)"
+                >
+                  <ShieldCheck size={14} color="#64748b" />
+                  <span className="hide-mobile">Admin</span>
+                </button>
+              )}
+
               {/* User Profile or Auth Buttons */}
               {currentUser ? (
                 <div

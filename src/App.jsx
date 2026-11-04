@@ -11,6 +11,7 @@ import Testimonials from './components/Testimonials';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import CourseDetailModal from './components/CourseDetailModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import BookTutorModal from './components/BookTutorModal';
 import TutorBookingsModal from './components/TutorBookingsModal';
 import ChatModal from './components/ChatModal';
@@ -19,6 +20,7 @@ import WishlistModal from './components/WishlistModal';
 import ConversationsModal from './components/ConversationsModal';
 import ArticlePostModal from './components/ArticlePostModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
+import AdminPortal from './components/AdminPortal';
 import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
@@ -37,7 +39,7 @@ import {
   parseJwtPayload
 } from './services/api';
 import { formatCourseFromBackend } from './utils/courseAdapter';
-import { GraduationCap, ArrowRight, Wifi, WifiOff } from 'lucide-react';
+import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
 import './App.css';
 
 function removeVietnameseTones(str) {
@@ -68,6 +70,18 @@ export default function App() {
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
   const [tutorBookingsModalOpen, setTutorBookingsModalOpen] = useState(false);
   const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(false);
+  const [isAdminView, setIsAdminView] = useState(() => {
+    return window.location.hash === '#admin';
+  });
+
+  useEffect(() => {
+    const handleHashChange = () => {
+      setIsAdminView(window.location.hash === '#admin');
+    };
+    window.addEventListener('hashchange', handleHashChange);
+    return () => window.removeEventListener('hashchange', handleHashChange);
+  }, []);
+
   const [tutorApplicationModalOpen, setTutorApplicationModalOpen] = useState(false);
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -318,6 +332,10 @@ export default function App() {
 
   const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
+    if (user?.role === 'ADMIN') {
+      window.location.hash = '#admin';
+      setIsAdminView(true);
+    }
     await loadUserEnrollments();
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
@@ -600,6 +618,100 @@ export default function App() {
 
   const wishlistCourseIds = wishlistItems.map(w => w.courseId);
 
+  // Tách riêng giao diện Admin Portal nếu đang ở chế độ Quản trị
+  if (isAdminView) {
+    if (currentUser?.role === 'ADMIN') {
+      return (
+        <AdminPortal
+          currentUser={currentUser}
+          onBackToClient={() => {
+            window.location.hash = '';
+            setIsAdminView(false);
+          }}
+          onLogout={handleLogout}
+          onDeleteArticle={handleDeleteArticle}
+        />
+      );
+    } else {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #0f172a 0%, #1e1e24 100%)',
+          color: '#fff',
+          flexDirection: 'column',
+          gap: 16,
+          padding: 24,
+          textAlign: 'center'
+        }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#fee2e2', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <ShieldCheck size={36} color="#dc2626" />
+          </div>
+          <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Khu Vực Quản Trị Hệ Thống EduTutor</h2>
+          {currentUser ? (
+            <p style={{ color: '#fca5a5', margin: 0, maxWidth: 500, fontSize: '0.95rem' }}>
+              Bạn đang đăng nhập bằng tài khoản <strong>{currentUser.displayName || currentUser.email}</strong> (vai trò: {currentUser.role}). Để vào Bảng quản trị, vui lòng chuyển sang tài khoản <strong>ADMIN</strong>.
+            </p>
+          ) : (
+            <p style={{ color: '#94a3b8', margin: 0, maxWidth: 460, fontSize: '0.95rem' }}>
+              Bạn cần đăng nhập bằng tài khoản có vai trò Quản trị viên (ADMIN) để truy cập Bảng điều khiển quản trị.
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+            <button
+              onClick={() => {
+                if (currentUser) {
+                  authApi.logout();
+                  setCurrentUser(null);
+                }
+                setAuthMode('login');
+                setAuthModalOpen(true);
+              }}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 6,
+                fontWeight: 700,
+                background: '#a435f0',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {currentUser ? 'Đăng xuất & Đăng nhập Admin' : 'Đăng nhập tài khoản Admin'}
+            </button>
+            <button
+              onClick={() => {
+                window.location.hash = '';
+                setIsAdminView(false);
+              }}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 6,
+                fontWeight: 600,
+                background: 'transparent',
+                color: '#fff',
+                border: '1px solid #475569',
+                cursor: 'pointer'
+              }}
+            >
+              Quay về trang chủ
+            </button>
+          </div>
+
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
+            initialMode={authMode}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        </div>
+      );
+    }
+  }
+
   return (
     <div className="ud-app">
       {/* Backend Status indicator banner */}
@@ -636,7 +748,10 @@ export default function App() {
             setConversationsModalOpen(true);
           }
         }}
-        onOpenAdmin={() => setAdminDashboardModalOpen(true)}
+        onOpenAdmin={() => {
+          setIsAdminView(true);
+          window.location.hash = 'admin';
+        }}
         courses={courses}
         tutors={topTutors}
         onSearch={handleSearch}
@@ -738,16 +853,18 @@ export default function App() {
         onLoginSuccess={handleLoginSuccess}
       />
 
-      <CourseDetailModal
-        course={selectedCourse}
-        isOpen={!!selectedCourse}
-        onClose={() => setSelectedCourse(null)}
-        onEnroll={handleEnrollCourse}
-        onAddToCart={handleAddToCart}
-        isEnrolled={selectedCourse ? enrolledCourseIds.includes(selectedCourse.id) : false}
-        currentUser={currentUser}
-        onOpenAuth={handleOpenAuth}
-      />
+      <ErrorBoundary onReset={() => setSelectedCourse(null)}>
+        <CourseDetailModal
+          course={selectedCourse}
+          isOpen={!!selectedCourse}
+          onClose={() => setSelectedCourse(null)}
+          onEnroll={handleEnrollCourse}
+          onAddToCart={handleAddToCart}
+          isEnrolled={selectedCourse ? enrolledCourseIds.includes(selectedCourse.id) : false}
+          currentUser={currentUser}
+          onOpenAuth={handleOpenAuth}
+        />
+      </ErrorBoundary>
 
       <BookTutorModal
         tutor={selectedTutorForBooking}
@@ -860,7 +977,10 @@ export default function App() {
         onClose={() => setTutorApplicationModalOpen(false)}
         currentUser={currentUser}
         onOpenAuth={handleOpenAuth}
-        onOpenAdmin={() => setAdminDashboardModalOpen(true)}
+        onOpenAdmin={() => {
+          setIsAdminView(true);
+          window.location.hash = 'admin';
+        }}
       />
     </div>
   );
