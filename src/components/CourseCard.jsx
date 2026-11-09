@@ -42,7 +42,7 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
 
           {/* Rating */}
           <div className="ud-card-rating">
-            <span className="rating-score">{course.rating || 4.9}</span>
+            <span className="rating-score">{Number(course.rating || 4.9).toFixed(1)}</span>
             <div className="rating-stars">
               {[...Array(5)].map((_, i) => (
                 <Star key={i} size={13} fill="#b4690e" stroke="#b4690e" />

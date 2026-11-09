@@ -82,7 +82,6 @@ export default function CourseDetailModal({
   const [activeVideoLesson, setActiveVideoLesson] = useState(null);
   const [progressPercent, setProgressPercent] = useState(0);
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
-  const [isUpdatingProgress, setIsUpdatingProgress] = useState(false);
   const [autoCompletedAlert, setAutoCompletedAlert] = useState(null);
 
   const iframeRef = useRef(null);
@@ -113,8 +112,11 @@ export default function CourseDetailModal({
     if ((isEnrolled || localEnrolled) && currentUser) {
       courseApi.getMyEnrollmentByCourse(course.id)
         .then((res) => {
-          if (res && res.progressPercent !== undefined && res.progressPercent !== null) {
-            setProgressPercent(res.progressPercent);
+          const enrollment = Array.isArray(res)
+            ? res.find((item) => item.studentId === currentUser.id)
+            : res;
+          if (enrollment && enrollment.progressPercent !== undefined && enrollment.progressPercent !== null) {
+            setProgressPercent(enrollment.progressPercent);
           }
         })
         .catch((err) => {
@@ -217,19 +219,11 @@ export default function CourseDetailModal({
       `🎉 Bạn đã xem xong "${lessonTitle || 'bài giảng'}"! Tiến độ khóa học đã tự động cập nhật lên ${newPercent}%.`
     );
 
-    // Gửi cập nhật lên Backend
-    setIsUpdatingProgress(true);
-    courseApi.updateProgressByCourse(course.id, newPercent)
-      .catch((err) => {
-        console.error('Lỗi cập nhật tiến độ lên backend:', err);
-      })
-      .finally(() => {
-        setIsUpdatingProgress(false);
-      });
+    // Backend chưa có endpoint cập nhật tiến độ; trạng thái được lưu cục bộ.
   };
 
   // Nút chuyển đổi thủ công (giữ nguyên để học viên/thầy cô có thể chủ động kiểm tra)
-  const handleToggleLessonCompleted = async (lessonId) => {
+  const handleToggleLessonCompleted = (lessonId) => {
     if (!effectivelyEnrolled) return;
 
     const isDone = completedLessonIds.includes(lessonId);
@@ -251,14 +245,7 @@ export default function CourseDetailModal({
     const newPercent = Math.min(100, Math.round((newCompleted.length / total) * 100));
     setProgressPercent(newPercent);
 
-    setIsUpdatingProgress(true);
-    try {
-      await courseApi.updateProgressByCourse(course.id, newPercent);
-    } catch (err) {
-      console.error('Lỗi cập nhật tiến độ khóa học lên backend:', err);
-    } finally {
-      setIsUpdatingProgress(false);
-    }
+    // Backend chưa có endpoint cập nhật tiến độ; trạng thái được lưu cục bộ.
   };
 
   const handleEnrollClick = async () => {
@@ -297,7 +284,7 @@ export default function CourseDetailModal({
             <p className="detail-sub">{course.highlights ? course.highlights[0] : ''}</p>
 
             <div className="detail-rating-row">
-              <span className="rating-score">{course.rating || 4.9}</span>
+              <span className="rating-score">{Number(course.rating || 4.9).toFixed(1)}</span>
               <div className="rating-stars">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} size={15} fill="#b4690e" stroke="#b4690e" />

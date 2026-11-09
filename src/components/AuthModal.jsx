@@ -24,11 +24,6 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
     try {
       if (mode === 'login') {
         let inputName = (displayName || email || '').trim();
-        // Tự động chuyển 'admin' thành 'admin@gmail.com' nếu người dùng gõ admin
-        if (inputName.toLowerCase() === 'admin') {
-          inputName = 'admin@gmail.com';
-        }
-
         // 1. Đăng nhập qua BE: POST /auth/login với displayName hoặc email
         const loginRes = await authApi.login(inputName, password);
         const token = loginRes?.accessToken || loginRes?.token || authApi.getToken();
@@ -212,8 +207,8 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
                 <button
                   type="button"
                   onClick={() => {
-                    setDisplayName('admin@gmail.com');
-                    setPassword('12345678');
+                    setDisplayName('admin');
+                    setPassword('123456789');
                   }}
                   style={{
                     padding: '4px 10px',
@@ -226,7 +221,7 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
                     fontWeight: 700
                   }}
                 >
-                  🛡️ Admin (admin@gmail.com)
+                  🛡️ Admin (admin / 123456789)
                 </button>
                 <button
                   type="button"

@@ -28,7 +28,7 @@ export default function TutorCard({ tutor, onBookTutor, onChatTutor }) {
           <div className="ud-tutor-stats">
             <div className="tutor-stat-item">
               <Star size={13} fill="#b4690e" stroke="#b4690e" />
-              <strong>{tutor.rating}</strong>
+              <strong>{Number(tutor.rating || 5.0).toFixed(1)}</strong>
               <span className="stat-sub">({tutor.reviews} đánh giá)</span>
             </div>
             <span className="stat-divider">•</span>

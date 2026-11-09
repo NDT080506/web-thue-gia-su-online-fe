@@ -699,7 +699,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                   </div>
                   <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#0f172a' }}>{packages.length}</div>
                   <div style={{ fontSize: '0.78rem', color: '#64748b', marginTop: 4 }}>
-                    Gói dịch vụ kết nối & trực tuyến 1-1
+                    Gói dịch vụ môi giới kết nối gia sư
                   </div>
                 </div>
 
@@ -1198,7 +1198,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                   Gói Dịch Vụ & Biểu Phí Môi Giới
                 </h2>
                 <p style={{ margin: '4px 0 0', color: '#64748b', fontSize: '0.88rem' }}>
-                  Giám sát các gói kết nối gia sư ngoài (Option 1) và dạy kèm trực tuyến (Option 2) do gia sư khởi tạo.
+                  Giám sát các gói dịch vụ môi giới và kết nối gia sư trên hệ thống.
                 </p>
               </div>
 

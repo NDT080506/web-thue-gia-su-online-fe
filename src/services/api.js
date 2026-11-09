@@ -106,10 +106,24 @@ export const authApi = {
     return res;
   },
 
-  // Logout
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+  // POST /auth/logout
+  logout: async () => {
+    const accessToken = localStorage.getItem('token');
+    const refreshToken = localStorage.getItem('refreshToken');
+
+    try {
+      if (accessToken || refreshToken) {
+        await request('/auth/logout', {
+          method: 'POST',
+          body: JSON.stringify({ accessToken, refreshToken }),
+        });
+      }
+    } catch (error) {
+      console.warn('Không thể thu hồi token trên Backend:', error.message);
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
   },
 
   getToken: () => localStorage.getItem('token'),
@@ -192,25 +206,9 @@ export const courseApi = {
     return await request('/course-enrollments/me');
   },
 
-  // GET /course-enrollments/me/course/:courseId (Lấy thông tin ghi danh khóa học của học sinh hiện tại)
+  // GET /course-enrollments/course/:courseId (Lấy các lượt ghi danh của khóa học)
   getMyEnrollmentByCourse: async (courseId) => {
-    return await request(`/course-enrollments/me/course/${courseId}`);
-  },
-
-  // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)
-  updateProgress: async (enrollmentId, progressPercent) => {
-    return await request(`/course-enrollments/${enrollmentId}/progress`, {
-      method: 'PATCH',
-      body: JSON.stringify({ progressPercent }),
-    });
-  },
-
-  // PATCH /course-enrollments/course/:courseId/progress (Cập nhật tiến độ theo courseId)
-  updateProgressByCourse: async (courseId, progressPercent) => {
-    return await request(`/course-enrollments/course/${courseId}/progress`, {
-      method: 'PATCH',
-      body: JSON.stringify({ progressPercent }),
-    });
+    return await request(`/course-enrollments/course/${courseId}`);
   },
 
   // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)
@@ -298,11 +296,6 @@ export const bookingApi = {
   // GET /bookings/me (Lấy các đơn đặt lịch của học sinh hiện tại)
   getMyBookings: async () => {
     return await request('/bookings/me');
-  },
-
-  // GET /bookings/tutor (Lấy các đơn học viên đặt lịch với gia sư hiện tại)
-  getTutorBookings: async () => {
-    return await request('/bookings/tutor');
   },
 
   // PATCH /bookings/:id/cancel
