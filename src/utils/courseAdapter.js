@@ -10,7 +10,7 @@ export function formatCourseFromBackend(course, index = 0) {
   let highlights = [
     'Xây dựng các RESTful API chuẩn quốc tế với Spring Boot 3 và Java 21',
     'Làm chủ PostgreSQL, Spring Data JPA, JWT Authentication và Spring Security',
-    'Học trực tiếp qua Google Meet kèm giải đáp mã nguồn 1-1'
+    'Học qua video bài giảng chất lượng cao kèm giải đáp mã nguồn 1-1'
   ];
 
   if (titleLower.includes('toán') || titleLower.includes('thpt') || titleLower.includes('toan')) {
@@ -19,7 +19,7 @@ export function formatCourseFromBackend(course, index = 0) {
     highlights = [
       'Nắm vững phương pháp giải nhanh chuyên đề và câu hỏi phân hóa',
       'Luyện đề bám sát cấu trúc mới nhất với lời giải chi tiết',
-      'Học trực tuyến và tương tác trực tiếp qua phòng học Google Meet'
+      'Học qua video bài giảng và hệ thống bài tập thực hành'
     ];
   } else if (titleLower.includes('tiếng anh') || titleLower.includes('ielts') || titleLower.includes('english')) {
     category = 'english';
@@ -27,7 +27,7 @@ export function formatCourseFromBackend(course, index = 0) {
     highlights = [
       'Phát triển phản xạ nghe nói tự nhiên và phát âm chuẩn quốc tế',
       'Chiến lược làm bài thi tối ưu điểm số với giáo trình chuẩn',
-      'Buổi học tương tác trực tuyến cùng giảng viên qua Google Meet'
+      'Học qua video bài giảng lộ trình bài bản và thực hành'
     ];
   }
 

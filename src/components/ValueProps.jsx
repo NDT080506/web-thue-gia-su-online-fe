@@ -5,8 +5,8 @@ export default function ValueProps() {
   const props = [
     {
       icon: Video,
-      title: 'Học 1-1 Trực Tuyến & Khóa Học',
-      desc: 'Tương tác trực tiếp qua phòng học ảo HD, chia sẻ màn hình và bảng vẽ.'
+      title: 'Video Bài Giảng & Gia Sư 1-1',
+      desc: 'Học qua video bài giảng chất lượng cao kết hợp kết nối gia sư kèm riêng uy tín.'
     },
     {
       icon: ShieldCheck,

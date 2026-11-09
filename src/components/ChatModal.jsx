@@ -184,7 +184,7 @@ export default function ChatModal({
   ] : [
     'Chào em! Thầy/cô sẵn sàng dạy kèm vào các buổi tối trong tuần.',
     'Em đang muốn ôn tập môn học và mục tiêu điểm số như thế nào?',
-    'Thầy/cô có thể sắp xếp buổi học thử đầu tiên qua Google Meet nhé.'
+    'Thầy/cô có thể sắp xếp lịch gặp trao đổi chi tiết nhé.'
   ];
 
   return (
