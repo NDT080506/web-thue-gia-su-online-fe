@@ -371,7 +371,7 @@ export default function Navbar({
                             </div>
                           </div>
                           <div style={{ fontSize: '0.8rem', color: '#b4690e', fontWeight: 700, flexShrink: 0 }}>
-                            ★ {t.rating}
+                            ★ {Number(t.rating || 5.0).toFixed(1)}
                           </div>
                         </div>
                       ))}

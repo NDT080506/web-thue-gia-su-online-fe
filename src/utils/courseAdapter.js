@@ -50,7 +50,7 @@ export function formatCourseFromBackend(course, index = 0) {
     instructor: course.tutorName || 'Gia sư EduTutor',
     instructorRole: 'Giảng viên chuyên môn cao',
     instructorAvatar: course.instructorAvatar || defaultAvatars[index % defaultAvatars.length],
-    rating: course.rating || (4.9 - (index * 0.05)),
+    rating: Number((course.rating ?? (4.9 - (index * 0.05))).toFixed(1)),
     ratingCount: course.ratingCount || (1250 + index * 420),
     price: course.price || 499000,
     originalPrice: course.originalPrice || Math.round((course.price || 500000) * 1.5),

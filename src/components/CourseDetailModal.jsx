@@ -297,7 +297,7 @@ export default function CourseDetailModal({
             <p className="detail-sub">{course.highlights ? course.highlights[0] : ''}</p>
 
             <div className="detail-rating-row">
-              <span className="rating-score">{course.rating || 4.9}</span>
+              <span className="rating-score">{Number(course.rating || 4.9).toFixed(1)}</span>
               <div className="rating-stars">
                 {[...Array(5)].map((_, i) => (
                   <Star key={i} size={15} fill="#b4690e" stroke="#b4690e" />

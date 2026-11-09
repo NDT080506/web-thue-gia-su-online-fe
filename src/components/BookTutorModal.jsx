@@ -193,7 +193,7 @@ export default function BookTutorModal({
               <img src={tutor.avatar} alt={tutor.name} className="author-img" />
               <div>
                 <span>Gia sư: <strong>{tutor.name}</strong></span>
-                <p className="author-role-sub">⭐ {tutor.rating} ({tutor.reviews || 120} đánh giá) • {tutor.students || 200} học sinh</p>
+                <p className="author-role-sub">⭐ {Number(tutor.rating || 5.0).toFixed(1)} ({tutor.reviews || 120} đánh giá) • {tutor.students || 200} học sinh</p>
               </div>
             </div>
           </div>
