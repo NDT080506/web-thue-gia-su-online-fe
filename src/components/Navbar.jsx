@@ -230,12 +230,12 @@ export default function Navbar({
           </div>
 
           {/* Search bar with Live Dropdown */}
-            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 180px', maxWidth: 440, minWidth: 160, margin: '0 8px' }}>
+            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 auto', maxWidth: 420, minWidth: 120, margin: '0 8px' }}>
               <form className={`ud-search-form ${isSearchFocused ? 'focused' : ''}`} onSubmit={handleSearchSubmit} style={{ width: '100%', margin: 0 }}>
                 <Search size={18} className="ud-search-icon" />
                 <input
                   type="text"
-                  placeholder="Tìm kiếm môn học, khóa học, tên gia sư..."
+                  placeholder="Tìm kiếm môn học, khóa học..."
                   value={searchTerm}
                   onChange={(e) => {
                     setSearchTerm(e.target.value);
@@ -429,12 +429,12 @@ export default function Navbar({
               <a href="#courses" className="ud-nav-link hide-mobile">
                 Khóa học
               </a>
-              <a href="#articles" className="ud-nav-link hide-mobile">
+              <a href="#articles" className="ud-nav-link hide-laptop">
                 Diễn đàn
               </a>
               <a
                 href="#become-tutor"
-                className="ud-nav-link ud-tutor-cta hide-mobile"
+                className="ud-nav-link ud-tutor-cta hide-laptop"
                 onClick={(e) => {
                   e.preventDefault();
                   if (onOpenTutorApplication) onOpenTutorApplication();
@@ -453,7 +453,7 @@ export default function Navbar({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 5,
+                      gap: 6,
                       padding: '5px 10px',
                       borderRadius: 20,
                       background: '#eff6ff',
@@ -467,11 +467,11 @@ export default function Navbar({
                     }}
                   >
                     <Wallet size={15} color="#2563eb" />
-                    <span>{formatCompactVND(userWallet?.availableBalance)}</span>
+                    <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(userWallet?.availableBalance || 0)}</span>
                   </button>
                 )}
                 <button
-                  className="ud-icon-btn"
+                  className="ud-icon-btn hide-tablet"
                   title="Danh sách yêu thích"
                   onClick={() => {
                     if (onOpenWishlist) onOpenWishlist();
@@ -589,14 +589,15 @@ export default function Navbar({
                     >
                       {currentUser.role === 'ADMIN' ? 'A' : (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U')}
                     </div>
-                    <div className="user-nav-details hide-mobile" style={{ maxWidth: 110, overflow: 'hidden' }}>
-                      <span className="user-nav-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{currentUser.displayName || currentUser.username}</span>
+                    <div className="user-nav-details hide-mobile" style={{ textAlign: 'left', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
+                      <span className="user-nav-name" style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', color: '#1c1d1f' }}>{currentUser.displayName || currentUser.username}</span>
                       <span
                         className="user-nav-role"
                         style={{
+                          display: 'block',
+                          fontSize: '0.74rem',
                           color: currentUser.role === 'ADMIN' ? '#dc2626' : (currentUser.role === 'TUTOR' ? '#a435f0' : '#2563eb'),
-                          fontWeight: 700,
-                          display: 'block'
+                          fontWeight: 700
                         }}
                       >
                         {currentUser.role === 'ADMIN' ? 'Quản trị viên' : (currentUser.role === 'TUTOR' ? 'Gia sư' : 'Học viên')}
@@ -644,9 +645,9 @@ export default function Navbar({
                       >
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <Wallet size={16} color="#2563eb" />
-                          <span style={{ fontWeight: 600, color: '#1d4ed8' }}>Ví tiền EduTutor</span>
+                          <span style={{ fontWeight: 600, color: '#1d4ed8', fontSize: '0.84rem' }}>Ví EduTutor</span>
                         </div>
-                        <strong style={{ color: '#1d4ed8', fontSize: '0.85rem' }}>
+                        <strong style={{ color: '#1d4ed8', fontSize: '0.85rem', whiteSpace: 'nowrap' }}>
                           {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(userWallet?.availableBalance || 0)}
                         </strong>
                       </button>
@@ -737,7 +738,7 @@ export default function Navbar({
               )}
 
                   {/* Language Globe */}
-                  <button className="ud-globe-btn" title="Chọn ngôn ngữ">
+                  <button className="ud-globe-btn hide-laptop" title="Chọn ngôn ngữ">
                     <Globe size={18} />
                   </button>
                 </div>

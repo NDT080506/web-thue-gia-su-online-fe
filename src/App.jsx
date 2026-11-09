@@ -266,11 +266,11 @@ export default function App() {
             user.role = tokenRole;
           }
           setCurrentUser(user);
+          await loadUserWallet(user);
           await loadUserEnrollments();
           await loadUserNotifications(user);
           await loadCartAndWishlist(user);
           await loadConversationsCount(user);
-          await loadUserWallet(user);
         } catch (e) {
           console.log('Chưa đăng nhập hoặc token hết hạn:', e.message);
           const token = authApi.getToken();
@@ -336,6 +336,7 @@ export default function App() {
       window.location.hash = '#admin';
       setIsAdminView(true);
     }
+    await loadUserWallet(user);
     await loadUserEnrollments();
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
@@ -345,6 +346,7 @@ export default function App() {
   const handleLogout = () => {
     authApi.logout();
     setCurrentUser(null);
+    setUserWallet(null);
     setEnrolledCourseIds([]);
     setNotificationCount(0);
     setConversationCount(0);
@@ -392,6 +394,7 @@ export default function App() {
       await cartApi.checkout();
       await loadUserEnrollments();
       await loadCartAndWishlist(currentUser);
+      await loadUserWallet(currentUser);
       alert('🎉 Thanh toán & Ghi danh thành công tất cả khóa học trong giỏ hàng! Toàn bộ video bài giảng đã được mở khóa.');
     } catch (err) {
       alert('Lỗi thanh toán giỏ hàng: ' + (err.data?.message || err.message));

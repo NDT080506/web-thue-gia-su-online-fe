@@ -40,7 +40,7 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
+  gap: 8px;
   width: 100%;
 }
 
@@ -188,6 +188,7 @@
 
 .ud-search-form input {
   flex: 1;
+  min-width: 0;
   border: none;
   background: transparent;
   font-size: 0.95rem;
@@ -206,7 +207,7 @@
 .ud-nav-actions {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -1893,7 +1894,17 @@
   }
 
   /* RESPONSIVE */
+  @media (max-width: 1250px) {
+    .hide-laptop {
+      display: none !important;
+    }
+  }
+
   @media (max-width: 1024px) {
+    .hide-tablet {
+      display: none !important;
+    }
+
     .ud-courses-grid {
       grid-template-columns: repeat(2, 1fr);
     }
@@ -2052,7 +2063,7 @@
     position: absolute;
     top: 100%;
     right: 0;
-    width: 270px;
+    width: 300px;
     max-width: calc(100vw - 24px);
     background-color: #ffffff;
     border: 1px solid var(--border-color);
