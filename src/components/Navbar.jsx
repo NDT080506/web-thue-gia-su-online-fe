@@ -63,6 +63,14 @@ export default function Navbar({
   const [showSearchDropdown, setShowSearchDropdown] = useState(false);
   const [showUserMenu, setShowUserMenu] = useState(false);
 
+  const formatCompactVND = (val) => {
+    if (!val) return '0 ₫';
+    if (val >= 1000000000) return `${(val / 1000000000).toFixed(1)}B ₫`;
+    if (val >= 1000000) return `${(val / 1000000).toFixed(val % 1000000 === 0 ? 0 : 1)}M ₫`;
+    if (val >= 1000) return `${(val / 1000).toFixed(0)}k ₫`;
+    return `${val} ₫`;
+  };
+
   const categoriesRef = useRef(null);
   const userMenuRef = useRef(null);
   const searchContainerRef = useRef(null);
@@ -222,7 +230,7 @@ export default function Navbar({
           </div>
 
           {/* Search bar with Live Dropdown */}
-            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 200px', maxWidth: 440, margin: '0 12px' }}>
+            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 180px', maxWidth: 440, minWidth: 160, margin: '0 8px' }}>
               <form className={`ud-search-form ${isSearchFocused ? 'focused' : ''}`} onSubmit={handleSearchSubmit} style={{ width: '100%', margin: 0 }}>
                 <Search size={18} className="ud-search-icon" />
                 <input
@@ -445,20 +453,21 @@ export default function Navbar({
                     style={{
                       display: 'flex',
                       alignItems: 'center',
-                      gap: 6,
-                      padding: '5px 12px',
+                      gap: 5,
+                      padding: '5px 10px',
                       borderRadius: 20,
                       background: '#eff6ff',
                       border: '1px solid #bfdbfe',
                       color: '#1d4ed8',
-                      fontSize: '0.84rem',
+                      fontSize: '0.82rem',
                       fontWeight: 700,
                       cursor: 'pointer',
-                      marginRight: 6
+                      whiteSpace: 'nowrap',
+                      flexShrink: 0
                     }}
                   >
-                    <Wallet size={16} color="#2563eb" />
-                    <span>{new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(userWallet?.availableBalance || 0)}</span>
+                    <Wallet size={15} color="#2563eb" />
+                    <span>{formatCompactVND(userWallet?.availableBalance)}</span>
                   </button>
                 )}
                 <button
@@ -527,8 +536,8 @@ export default function Navbar({
                 </button>
               </div>
 
-              {/* Admin Quick Switch Portal Button */}
-              {currentUser?.role === 'ADMIN' ? (
+              {/* Admin Portal Button - Only visible for ADMIN */}
+              {currentUser?.role === 'ADMIN' && (
                 <button
                   onClick={() => {
                     if (onOpenAdmin) onOpenAdmin();
@@ -541,39 +550,17 @@ export default function Navbar({
                     color: '#b91c1c',
                     border: '1px solid #fca5a5',
                     borderRadius: 6,
-                    padding: '7px 12px',
-                    fontSize: '0.82rem',
+                    padding: '6px 10px',
+                    fontSize: '0.8rem',
                     fontWeight: 700,
                     cursor: 'pointer',
-                    transition: 'all 0.2s'
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
                   }}
                   title="Chuyển sang Giao diện Quản trị viên (Admin Portal)"
                 >
-                  <ShieldCheck size={16} />
-                  <span className="hide-mobile">Trang Quản Trị</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => {
-                    if (onOpenAdmin) onOpenAdmin();
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 5,
-                    background: '#f8fafc',
-                    color: '#475569',
-                    border: '1px solid #cbd5e1',
-                    borderRadius: 6,
-                    padding: '6px 10px',
-                    fontSize: '0.78rem',
-                    fontWeight: 600,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s'
-                  }}
-                  title="Mở Bảng điều khiển Quản trị viên (Admin Portal)"
-                >
-                  <ShieldCheck size={14} color="#64748b" />
+                  <ShieldCheck size={15} />
                   <span className="hide-mobile">Admin</span>
                 </button>
               )}
@@ -602,13 +589,14 @@ export default function Navbar({
                     >
                       {currentUser.role === 'ADMIN' ? 'A' : (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U')}
                     </div>
-                    <div className="user-nav-details hide-mobile">
-                      <span className="user-nav-name">{currentUser.displayName || currentUser.username}</span>
+                    <div className="user-nav-details hide-mobile" style={{ maxWidth: 110, overflow: 'hidden' }}>
+                      <span className="user-nav-name" style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>{currentUser.displayName || currentUser.username}</span>
                       <span
                         className="user-nav-role"
                         style={{
                           color: currentUser.role === 'ADMIN' ? '#dc2626' : (currentUser.role === 'TUTOR' ? '#a435f0' : '#2563eb'),
-                          fontWeight: 700
+                          fontWeight: 700,
+                          display: 'block'
                         }}
                       >
                         {currentUser.role === 'ADMIN' ? 'Quản trị viên' : (currentUser.role === 'TUTOR' ? 'Gia sư' : 'Học viên')}

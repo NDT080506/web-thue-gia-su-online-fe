@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Video, ShieldCheck, Clock, MessageSquareQuote } from 'lucide-react';
 
 export default function ValueProps() {
