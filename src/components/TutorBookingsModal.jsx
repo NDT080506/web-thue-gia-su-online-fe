@@ -119,6 +119,7 @@ export default function TutorBookingsModal({
       });
       setSuccessMsg('Đã gửi khiếu nại thành công! Vụ việc đang chờ Quản trị viên phân xử.');
       setDisputeModalOpen(false);
+      fetchBookings();
     } catch (err) {
       const msg = err.data?.message || err.message || '';
       if (msg.includes('Payment') || msg.includes('PAYMENT')) {
