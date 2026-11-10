@@ -230,7 +230,7 @@ export default function Navbar({
           </div>
 
           {/* Search bar with Live Dropdown */}
-            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 auto', maxWidth: 420, minWidth: 120, margin: '0 8px' }}>
+            <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 260px', maxWidth: 460, minWidth: 200, margin: '0 8px' }}>
               <form className={`ud-search-form ${isSearchFocused ? 'focused' : ''}`} onSubmit={handleSearchSubmit} style={{ width: '100%', margin: 0 }}>
                 <Search size={18} className="ud-search-icon" />
                 <input
@@ -273,21 +273,22 @@ export default function Navbar({
                     position: 'absolute',
                     top: 'calc(100% + 8px)',
                     left: 0,
-                    right: 0,
+                    width: 'max(100%, 460px)',
+                    maxWidth: 'min(540px, calc(100vw - 32px))',
                     background: '#ffffff',
-                    borderRadius: 10,
-                    boxShadow: '0 12px 32px rgba(0,0,0,0.18)',
-                    border: '1px solid #e4e8eb',
-                    overflow: 'hidden',
+                    borderRadius: 12,
+                    boxShadow: '0 16px 40px rgba(0, 0, 0, 0.16)',
+                    border: '1px solid #e2e8f0',
                     zIndex: 1000,
                     maxHeight: 520,
-                    overflowY: 'auto'
+                    overflowY: 'auto',
+                    overflowX: 'hidden'
                   }}
                 >
                   {/* Matching Courses */}
                   {matchingCourses.length > 0 && (
                     <div style={{ padding: '10px 0 4px', borderBottom: matchingTutors.length > 0 ? '1px solid #f1f5f9' : 'none' }}>
-                      <div style={{ padding: '0 16px 8px', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ padding: '0 16px 8px', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                         <BookOpen size={14} color="#a435f0" />
                         <span>Khóa học phù hợp ({matchingCourses.length})</span>
                       </div>
@@ -313,17 +314,17 @@ export default function Navbar({
                           <img
                             src={c.thumbnail}
                             alt={c.title}
-                            style={{ width: 48, height: 34, borderRadius: 4, objectFit: 'cover', flexShrink: 0 }}
+                            style={{ width: 52, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {c.title}
                             </div>
-                            <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                            <div style={{ fontSize: '0.76rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               Giảng viên: {c.instructor}
                             </div>
                           </div>
-                          <div style={{ fontSize: '0.88rem', fontWeight: 700, color: '#a435f0', flexShrink: 0 }}>
+                          <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#a435f0', flexShrink: 0, whiteSpace: 'nowrap' }}>
                             {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price || 0)}
                           </div>
                         </div>
@@ -334,7 +335,7 @@ export default function Navbar({
                   {/* Matching Tutors */}
                   {matchingTutors.length > 0 && (
                     <div style={{ padding: '10px 0 4px' }}>
-                      <div style={{ padding: '0 16px 8px', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <div style={{ padding: '0 16px 8px', fontSize: '0.74rem', fontWeight: 700, color: '#64748b', textTransform: 'uppercase', letterSpacing: 0.5, display: 'flex', alignItems: 'center', gap: 6, whiteSpace: 'nowrap' }}>
                         <GraduationCap size={14} color="#0d6832" />
                         <span>Gia sư 1-1 ({matchingTutors.length})</span>
                       </div>
@@ -360,17 +361,17 @@ export default function Navbar({
                           <img
                             src={t.avatar}
                             alt={t.name}
-                            style={{ width: 38, height: 38, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #a435f0' }}
+                            style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #a435f0' }}
                           />
                           <div style={{ flex: 1, minWidth: 0 }}>
-                            <div style={{ fontSize: '0.9rem', fontWeight: 600, color: '#1c1d1f' }}>
+                            <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {t.name}
                             </div>
-                            <div style={{ fontSize: '0.76rem', color: '#64748b' }}>
+                            <div style={{ fontSize: '0.76rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {t.title} • {t.degree}
                             </div>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#b4690e', fontWeight: 700, flexShrink: 0 }}>
+                          <div style={{ fontSize: '0.8rem', color: '#b4690e', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
                             ★ {Number(t.rating || 5.0).toFixed(1)}
                           </div>
                         </div>
@@ -410,7 +411,8 @@ export default function Navbar({
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        gap: 6
+                        gap: 6,
+                        whiteSpace: 'nowrap'
                       }}
                     >
                       <span>Lọc và xem tất cả kết quả cho "{searchTerm}"</span>
@@ -589,8 +591,8 @@ export default function Navbar({
                     >
                       {currentUser.role === 'ADMIN' ? 'A' : (currentUser.displayName ? currentUser.displayName.charAt(0).toUpperCase() : 'U')}
                     </div>
-                    <div className="user-nav-details hide-mobile" style={{ textAlign: 'left', lineHeight: 1.25, whiteSpace: 'nowrap' }}>
-                      <span className="user-nav-name" style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', color: '#1c1d1f' }}>{currentUser.displayName || currentUser.username}</span>
+                    <div className="user-nav-details hide-mobile" style={{ textAlign: 'left', lineHeight: 1.25, whiteSpace: 'nowrap', maxWidth: 120, overflow: 'hidden' }}>
+                      <span className="user-nav-name" style={{ display: 'block', fontWeight: 600, fontSize: '0.86rem', color: '#1c1d1f', overflow: 'hidden', textOverflow: 'ellipsis' }}>{currentUser.displayName || currentUser.username}</span>
                       <span
                         className="user-nav-role"
                         style={{

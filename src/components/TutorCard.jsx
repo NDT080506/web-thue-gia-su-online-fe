@@ -1,4 +1,4 @@
-﻿import React from 'react';
+import React from 'react';
 import { Star, CheckCircle, Calendar, MessageCircle, Award, Users } from 'lucide-react';
 
 export default function TutorCard({ tutor, onBookTutor, onChatTutor }) {
