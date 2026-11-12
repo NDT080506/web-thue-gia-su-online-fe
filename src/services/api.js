@@ -1,4 +1,4 @@
-const BASE_URL = '/api';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
 
 /**
  * Helper giải mã JWT payload và trích xuất vai trò (Role)
