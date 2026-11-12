@@ -50,8 +50,8 @@ export default function PaymentCheckoutModal({
       setIsLoadingWallet(true);
       setErrorMsg('');
       try {
-        const w = await walletApi.getWalletByUserId(currentUser.id);
-        setWallet(w);
+        const w = await walletApi.getMyWallet();
+        setWallet(w || { availableBalance: 0, holdingBalance: 0 });
       } catch (err) {
         console.warn('Lỗi lấy ví người dùng:', err);
         // Fallback wallet if new user doesn't have wallet loaded yet
@@ -81,6 +81,9 @@ export default function PaymentCheckoutModal({
     setIsQuickToppingUp(true);
     setErrorMsg('');
     try {
+      // 0. Ensure user has created a NORMAL wallet
+      await walletApi.ensureWallet('NORMAL');
+
       // Top up missing amount rounded up to nearest 50k or minimum 100k
       const topUpAmount = Math.max(100000, Math.ceil(missingAmount / 50000) * 50000);
 
@@ -91,9 +94,12 @@ export default function PaymentCheckoutModal({
       // 2. Simulate gateway payment success
       await mockPaymentApi.simulateSuccess(depRes.referenceCode);
 
-      // 3. Re-fetch refreshed wallet balance
-      const updatedWallet = await walletApi.getWalletByUserId(currentUser.id);
-      setWallet(updatedWallet);
+      // 3. Confirm deposit so balance is actually credited
+      await walletApi.confirmDeposit(depRes.referenceCode);
+
+      // 4. Re-fetch refreshed wallet balance
+      const updatedWallet = await walletApi.getMyWallet();
+      setWallet(updatedWallet || { availableBalance: 0, holdingBalance: 0 });
     } catch (err) {
       console.error('Nạp nhanh thất bại:', err);
       setErrorMsg('Nạp tiền tự động không thành công: ' + (err.data?.message || err.message));
