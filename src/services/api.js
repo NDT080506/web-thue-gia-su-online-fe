@@ -128,19 +128,18 @@ export const authApi = {
     const accessToken = localStorage.getItem('token');
     const refreshToken = localStorage.getItem('refreshToken');
 
-    try {
-      if (accessToken || refreshToken) {
-        await request('/auth/logout', {
-          method: 'POST',
-          body: JSON.stringify({ accessToken, refreshToken }),
-        });
-      }
-    } catch (error) {
-      console.warn('Không thể thu hồi token trên Backend:', error.message);
-    } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+    if (!accessToken || !refreshToken) {
+      throw new Error('Thiếu access token hoặc refresh token');
     }
+
+    // Chỉ xóa token local khi Backend xác nhận logout thành công
+    await request('/auth/logout', {
+      method: 'POST',
+      body: JSON.stringify({ accessToken, refreshToken }),
+    });
+
+    localStorage.removeItem('token');
+    localStorage.removeItem('refreshToken');
   },
 
   getToken: () => localStorage.getItem('token'),
@@ -219,7 +218,7 @@ export const courseApi = {
   enrollCourse: async (courseId) => {
     return await request('/course-enrollments', {
       method: 'POST',
-      body: JSON.stringify({ courseId }),
+      body: JSON.stringify({ courseId }),f
     });
   },
 

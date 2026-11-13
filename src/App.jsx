@@ -352,16 +352,23 @@ export default function App() {
     await loadConversationsCount(user);
   };
 
-  const handleLogout = () => {
-    authApi.logout();
-    setCurrentUser(null);
-    setUserWallet(null);
-    setEnrolledCourseIds([]);
-    setNotificationCount(0);
-    setConversationCount(0);
-    setCartItems([]);
-    setWishlistItems([]);
-    alert('Đã đăng xuất thành công!');
+  const handleLogout = async () => {
+    try {
+      await authApi.logout();
+
+      setCurrentUser(null);
+      setUserWallet(null);
+      setEnrolledCourseIds([]);
+      setNotificationCount(0);
+      setConversationCount(0);
+      setCartItems([]);
+      setWishlistItems([]);
+
+      alert('Đã đăng xuất thành công!');
+    } catch (error) {
+      console.error('Logout failed:', error);
+      alert('Đăng xuất thất bại: ' + error.message);
+    }
   };
 
   // ==================== CART ACTIONS (CSDL PostgreSQL) ====================
