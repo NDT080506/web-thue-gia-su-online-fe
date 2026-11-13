@@ -68,6 +68,23 @@ async function request(endpoint, options = {}) {
   }
 }
 
+/**
+ * Helper trích xuất mảng phần tử từ Spring Data Page<T> (hoặc trả nguyên mảng nếu BE trả List)
+ */
+function extractPageContent(res) {
+  if (Array.isArray(res)) return res;
+  if (res && Array.isArray(res.content)) return res.content;
+  return [];
+}
+
+/**
+ * Helper gắn tham số phân trang mặc định cho các API dùng Pageable trên BE Optimize01
+ */
+function withPagination(endpoint, page = 0, size = 100) {
+  const separator = endpoint.includes('?') ? '&' : '?';
+  return `${endpoint}${separator}page=${page}&size=${size}`;
+}
+
 /* ==================== 1. AUTHENTICATION & USERS ==================== */
 export const authApi = {
   // POST /auth/login (Backend requires displayName & password)
@@ -132,9 +149,10 @@ export const authApi = {
 
 /* ==================== 2. ARTICLES & COMMENTS ==================== */
 export const articleApi = {
-  // GET /articles (Public)
-  getArticles: async () => {
-    return await request('/articles');
+  // GET /articles (Public, trả về Page<ArticleResponse>)
+  getArticles: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/articles', page, size));
+    return extractPageContent(res);
   },
 
   // GET /articles/:id
@@ -142,9 +160,10 @@ export const articleApi = {
     return await request(`/articles/${id}`);
   },
 
-  // GET /articles/my-articles
-  getMyArticles: async () => {
-    return await request('/articles/my-articles');
+  // GET /articles/my-articles (trả về Page<ArticleResponse>)
+  getMyArticles: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/articles/my-articles', page, size));
+    return extractPageContent(res);
   },
 
   // POST /articles (Create new article)
@@ -162,9 +181,10 @@ export const articleApi = {
     });
   },
 
-  // GET /article-comments/article/:articleId
-  getComments: async (articleId) => {
-    return await request(`/article-comments/article/${articleId}`);
+  // GET /article-comments/article/:articleId (trả về Page<ArticleCommentResponse>)
+  getComments: async (articleId, page = 0, size = 100) => {
+    const res = await request(withPagination(`/article-comments/article/${articleId}`, page, size));
+    return extractPageContent(res);
   },
 
   // POST /article-comments/:articleId
@@ -178,9 +198,10 @@ export const articleApi = {
 
 /* ==================== 3. COURSES & ENROLLMENT ==================== */
 export const courseApi = {
-  // GET /courses
-  getCourses: async () => {
-    return await request('/courses');
+  // GET /courses (trả về Page<CourseResponse>)
+  getCourses: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/courses', page, size));
+    return extractPageContent(res);
   },
 
   // GET /courses/:id
@@ -188,9 +209,10 @@ export const courseApi = {
     return await request(`/courses/${id}`);
   },
 
-  // GET /lessons/course/:courseId (Lấy danh sách bài học của khóa học)
-  getLessons: async (courseId) => {
-    return await request(`/lessons/course/${courseId}`);
+  // GET /lessons/course/:courseId (Lấy danh sách bài học của khóa học - Page<LessonResponse>)
+  getLessons: async (courseId, page = 0, size = 100) => {
+    const res = await request(withPagination(`/lessons/course/${courseId}`, page, size));
+    return extractPageContent(res);
   },
 
   // POST /course-enrollments (Đăng ký ghi danh khóa học)
@@ -201,9 +223,10 @@ export const courseApi = {
     });
   },
 
-  // GET /course-enrollments/me (Lấy danh sách khóa học của học sinh hiện tại)
-  getMyEnrollments: async () => {
-    return await request('/course-enrollments/me');
+  // GET /course-enrollments/me (Lấy danh sách khóa học của học sinh hiện tại - Page<CourseEnrollmentResponse>)
+  getMyEnrollments: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/course-enrollments/me', page, size));
+    return extractPageContent(res);
   },
 
   // GET /course-enrollments/course/:courseId (Lấy các lượt ghi danh của khóa học)
@@ -229,9 +252,10 @@ export const conversationApi = {
     });
   },
 
-  // GET /conversations/me (Lấy danh sách cuộc trò chuyện của tôi)
-  getMyConversations: async () => {
-    return await request('/conversations/me');
+  // GET /conversations/me (Lấy danh sách cuộc trò chuyện của tôi - Page<ConversationResponse>)
+  getMyConversations: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/conversations/me', page, size));
+    return extractPageContent(res);
   },
 
   // GET /conversations/:id
@@ -256,9 +280,10 @@ export const conversationApi = {
 
 /* ==================== 4.1. MESSAGES & REALTIME ==================== */
 export const messageApi = {
-  // GET /messages/conversation/:conversationId
-  getMessages: async (conversationId) => {
-    return await request(`/messages/conversation/${conversationId}`);
+  // GET /messages/conversation/:conversationId (trả về Page<MessageResponse>)
+  getMessages: async (conversationId, page = 0, size = 200) => {
+    const res = await request(withPagination(`/messages/conversation/${conversationId}`, page, size));
+    return extractPageContent(res);
   },
 
   // POST /messages
@@ -272,9 +297,10 @@ export const messageApi = {
 
 /* ==================== 5. BROKERAGE PACKAGES ==================== */
 export const brokeragePackageApi = {
-  // GET /brokerage-packages/tutor/:tutorId
-  getPackagesByTutor: async (tutorId) => {
-    return await request(`/brokerage-packages/tutor/${tutorId}`);
+  // GET /brokerage-packages/tutor/:tutorId (trả về Page<BrokeragePackageResponse>)
+  getPackagesByTutor: async (tutorId, page = 0, size = 100) => {
+    const res = await request(withPagination(`/brokerage-packages/tutor/${tutorId}`, page, size));
+    return extractPageContent(res);
   },
 
   // GET /brokerage-packages/:id
@@ -293,9 +319,15 @@ export const bookingApi = {
     });
   },
 
-  // GET /bookings/me (Lấy các đơn đặt lịch của học sinh hiện tại)
-  getMyBookings: async () => {
-    return await request('/bookings/me');
+  // GET /bookings/me (Lấy các đơn đặt lịch của học sinh hiện tại - Page<BookingResponse>)
+  getMyBookings: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/bookings/me', page, size));
+    return extractPageContent(res);
+  },
+
+  // GET /bookings/tutor (Lấy các đơn học viên đặt lịch với gia sư hiện tại)
+  getTutorBookings: async () => {
+    return await request('/bookings/tutor');
   },
 
   // PATCH /bookings/:id/cancel
@@ -321,7 +353,7 @@ export const bookingApi = {
 /* ==================== 7. HEALTH CHECK ==================== */
 export const checkBackendHealth = async () => {
   try {
-    const res = await fetch(`${BASE_URL}/articles`, { method: 'GET' });
+    const res = await fetch(`${BASE_URL}/articles?page=0&size=1`, { method: 'GET' });
     return res.ok;
   } catch {
     return false;
@@ -330,9 +362,10 @@ export const checkBackendHealth = async () => {
 
 /* ==================== 8. CART ==================== */
 export const cartApi = {
-  // GET /cart (Lấy danh sách khóa học trong giỏ hàng)
-  getCart: async () => {
-    return await request('/cart');
+  // GET /cart (Lấy danh sách khóa học trong giỏ hàng - Page<CartItemResponse>)
+  getCart: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/cart', page, size));
+    return extractPageContent(res);
   },
 
   // POST /cart (Thêm khóa học vào giỏ hàng)
@@ -367,9 +400,10 @@ export const cartApi = {
 
 /* ==================== 9. WISHLIST ==================== */
 export const wishlistApi = {
-  // GET /wishlist (Lấy danh sách yêu thích)
-  getWishlist: async () => {
-    return await request('/wishlist');
+  // GET /wishlist (Lấy danh sách yêu thích - Page<WishlistItemResponse>)
+  getWishlist: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/wishlist', page, size));
+    return extractPageContent(res);
   },
 
   // POST /wishlist/:courseId (Thêm vào yêu thích)
@@ -389,9 +423,10 @@ export const wishlistApi = {
 
 /* ==================== 10. ADMIN MANAGEMENT ==================== */
 export const adminApi = {
-  // GET /users/admin (Lấy danh sách tất cả người dùng trong hệ thống)
-  getAllUsers: async () => {
-    return await request('/users/admin');
+  // GET /users/admin (Lấy danh sách tất cả người dùng - Page<UserResponse>)
+  getAllUsers: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/users/admin', page, size));
+    return extractPageContent(res);
   },
 
   // PUT /users/admin/:userId/status (Khóa hoặc Mở khóa tài khoản)
@@ -402,9 +437,10 @@ export const adminApi = {
     });
   },
 
-  // GET /tutor-applications/admin (Lấy danh sách đơn đăng ký gia sư)
-  getTutorApplications: async () => {
-    return await request('/tutor-applications/admin');
+  // GET /tutor-applications/admin (Lấy danh sách đơn đăng ký gia sư - Page<TutorApplicationResponse>)
+  getTutorApplications: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/tutor-applications/admin', page, size));
+    return extractPageContent(res);
   },
 
   // PATCH /tutor-applications/admin/:applicationId/approve (Duyệt đơn gia sư)
@@ -422,14 +458,17 @@ export const adminApi = {
     });
   },
 
-  // GET /brokerage-packages/admin/get-all (Lấy tất cả gói môi giới)
-  getAllPackages: async () => {
-    return await request('/brokerage-packages/admin/get-all');
+  // GET /brokerage-packages/admin/get-all (Lấy tất cả gói môi giới - Page<BrokeragePackageResponse>)
+  getAllPackages: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/brokerage-packages/admin/get-all', page, size));
+    return extractPageContent(res);
   },
 
-  // GET /admin/disputes (Lấy danh sách khiếu nại tranh chấp cho Admin)
-  getDisputes: async (status) => {
-    return await request(status ? `/admin/disputes?status=${status}` : '/admin/disputes');
+  // GET /admin/disputes (Lấy danh sách khiếu nại tranh chấp cho Admin - Page<DisputeResponse>)
+  getDisputes: async (status, page = 0, size = 100) => {
+    const base = status ? `/admin/disputes?status=${status}` : '/admin/disputes';
+    const res = await request(withPagination(base, page, size));
+    return extractPageContent(res);
   },
 
   // GET /admin/disputes/:id (Xem chi tiết khiếu nại)
@@ -451,16 +490,18 @@ export const adminApi = {
     });
   },
 
-  // GET /admin/action-logs (Lấy nhật ký kiểm toán hệ thống)
+  // GET /admin/action-logs (Lấy nhật ký kiểm toán hệ thống - Page<ActionLogResponse>)
   getActionLogs: async (params = {}) => {
     const query = new URLSearchParams();
-    Object.entries(params).forEach(([key, val]) => {
+    const merged = { page: 0, size: 100, ...params };
+    Object.entries(merged).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== '') {
         query.append(key, val);
       }
     });
     const queryString = query.toString();
-    return await request(`/admin/action-logs${queryString ? `?${queryString}` : ''}`);
+    const res = await request(`/admin/action-logs${queryString ? `?${queryString}` : ''}`);
+    return extractPageContent(res);
   },
 
   // GET /admin/action-logs/:id
@@ -468,17 +509,45 @@ export const adminApi = {
     return await request(`/admin/action-logs/${id}`);
   },
 
-  // GET /admin/withdrawals (Lấy danh sách yêu cầu rút tiền của gia sư)
-  getWithdrawals: async () => {
-    return await request('/admin/withdrawals');
+  // GET /admin/withdrawals (Lấy danh sách yêu cầu rút tiền - Page<WithdrawalResponse>)
+  getWithdrawals: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/admin/withdrawals', page, size));
+    return extractPageContent(res);
   },
 };
 
 /* ==================== 11. WALLET & DEPOSIT ==================== */
 export const walletApi = {
-  // GET /wallets/user/:userId
-  getWalletByUserId: async (userId) => {
-    return await request(`/wallets/user/${userId}`);
+  // POST /wallets (User tự gọi API tạo ví trên BE Optimize01)
+  createWallet: async (type = 'NORMAL') => {
+    return await request('/wallets', {
+      method: 'POST',
+      body: JSON.stringify({ type }),
+    });
+  },
+
+  // GET /wallets/user (BE Optimize01 trả về Page<WalletResponse>)
+  getMyWallets: async (page = 0, size = 20) => {
+    const res = await request(withPagination('/wallets/user', page, size));
+    return extractPageContent(res);
+  },
+
+  // Lấy ví NORMAL của user hiện tại (trả về null nếu user chưa tạo ví)
+  getMyWallet: async () => {
+    const wallets = await walletApi.getMyWallets();
+    return wallets.find((w) => w.type === 'NORMAL') || wallets[0] || null;
+  },
+
+  // Tương thích các component cũ gọi theo userId -> chuyển sang GET /wallets/user
+  getWalletByUserId: async (_userId) => {
+    return await walletApi.getMyWallet();
+  },
+
+  // Đảm bảo user đã có ví trước khi giao dịch (tạo ví NORMAL nếu chưa có)
+  ensureWallet: async (type = 'NORMAL') => {
+    const existing = await walletApi.getMyWallet();
+    if (existing) return existing;
+    return await walletApi.createWallet(type);
   },
 
   // GET /wallets/:id
@@ -570,9 +639,10 @@ export const disputeApi = {
     });
   },
 
-  // GET /disputes/me (Danh sách khiếu nại của học sinh hiện tại)
-  getMyDisputes: async () => {
-    return await request('/disputes/me');
+  // GET /disputes/me (Danh sách khiếu nại của học sinh hiện tại - Page<DisputeResponse>)
+  getMyDisputes: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/disputes/me', page, size));
+    return extractPageContent(res);
   },
 
   // GET /disputes/:id (Xem chi tiết khiếu nại)

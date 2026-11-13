@@ -23,6 +23,7 @@ export default function WalletTopUpModal({
 }) {
   const [wallet, setWallet] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isCreatingWallet, setIsCreatingWallet] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [selectedAmount, setSelectedAmount] = useState(500000);
   const [customAmount, setCustomAmount] = useState('');
@@ -39,13 +40,30 @@ export default function WalletTopUpModal({
     if (!currentUser?.id) return;
     setIsLoading(true);
     try {
-      const data = await walletApi.getWalletByUserId(currentUser.id);
+      const data = await walletApi.getMyWallet();
       setWallet(data);
-      if (onWalletUpdated) onWalletUpdated(data);
+      if (onWalletUpdated) onWalletUpdated(data || { availableBalance: 0, holdingBalance: 0 });
     } catch (err) {
       console.warn('Lỗi lấy thông tin ví:', err);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleCreateWallet = async () => {
+    setIsCreatingWallet(true);
+    setErrorMsg('');
+    setSuccessMessage('');
+    try {
+      const created = await walletApi.createWallet('NORMAL');
+      setWallet(created);
+      if (onWalletUpdated) onWalletUpdated(created);
+      setSuccessMessage('Đã kích hoạt Ví EduTutor thành công! Bạn có thể nạp tiền ngay bây giờ.');
+    } catch (err) {
+      console.error('Lỗi tạo ví:', err);
+      setErrorMsg('Không thể tạo ví: ' + (err.data?.message || err.message));
+    } finally {
+      setIsCreatingWallet(false);
     }
   };
 
@@ -72,6 +90,12 @@ export default function WalletTopUpModal({
     setSuccessMessage('');
 
     try {
+      // 0. Đảm bảo user đã tạo ví NORMAL (gọi POST /wallets nếu chưa có)
+      if (!wallet) {
+        const ensured = await walletApi.ensureWallet('NORMAL');
+        setWallet(ensured);
+      }
+
       // 1. Tạo yêu cầu nạp tiền (POST /wallet/deposits)
       const depRes = await walletApi.createDeposit(currentAmount);
       const refCode = depRes?.referenceCode;
@@ -83,7 +107,7 @@ export default function WalletTopUpModal({
       await mockPaymentApi.simulateSuccess(refCode);
 
       // 3. Xác nhận giao dịch để cộng tiền vào ví (POST /wallet/deposits/{refCode}/confirm)
-      const confirmRes = await walletApi.confirmDeposit(refCode);
+      await walletApi.confirmDeposit(refCode);
 
       // 4. Cập nhật lại số dư ví
       await fetchWallet();
@@ -140,6 +164,34 @@ export default function WalletTopUpModal({
           {successMessage && (
             <div className="auth-alert success" style={{ marginBottom: 16, backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #bbf7d0', padding: '12px 16px', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
               <CheckCircle2 size={18} color="#16a34a" /> <span>{successMessage}</span>
+            </div>
+          )}
+
+          {!isLoading && !wallet && (
+            <div style={{
+              marginBottom: 16,
+              padding: '14px 16px',
+              borderRadius: 10,
+              background: '#eff6ff',
+              border: '1px solid #bfdbfe',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: 12,
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ fontSize: '0.86rem', color: '#1e3a8a' }}>
+                <strong>Tài khoản chưa kích hoạt Ví EduTutor.</strong> Bấm nút bên cạnh để tạo ví (0 ₫) hoặc nạp tiền để hệ thống tự kích hoạt.
+              </div>
+              <button
+                type="button"
+                onClick={handleCreateWallet}
+                disabled={isCreatingWallet}
+                className="btn btn-primary"
+                style={{ padding: '8px 14px', fontSize: '0.84rem', whiteSpace: 'nowrap' }}
+              >
+                {isCreatingWallet ? 'Đang tạo ví...' : 'Kích hoạt Ví ngay'}
+              </button>
             </div>
           )}
 
