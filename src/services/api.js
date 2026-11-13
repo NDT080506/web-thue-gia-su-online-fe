@@ -1,4 +1,4 @@
-const BASE_URL = '/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Helper giải mã JWT payload và trích xuất vai trò (Role)
@@ -217,7 +217,12 @@ export const courseApi = {
 
   // GET /course-enrollments/me/course/:courseId (Lấy thông tin ghi danh khóa học của học sinh hiện tại)
   getMyEnrollmentByCourse: async (courseId) => {
-    return await request(`/course-enrollments/me/course/${courseId}`);
+    try {
+      const enrollments = await courseApi.getMyEnrollments(0, 100);
+      return (enrollments || []).find((e) => e.courseId === courseId) || null;
+    } catch {
+      return null;
+    }
   },
 
   // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)

@@ -98,6 +98,27 @@ export default function TutorBookingsModal({
     }
   };
 
+  // Học viên xác nhận hoàn thành & giải ngân ký quỹ cho gia sư
+  const handleCompleteBooking = async (bookingId) => {
+    if (!window.confirm('Bạn có chắc chắn đã hoàn thành buổi học và muốn GIẢI NGÂN học phí cho gia sư?')) {
+      return;
+    }
+
+    setCompletingId(bookingId);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await bookingApi.completeBooking(bookingId);
+      setSuccessMsg('🎉 Đã xác nhận hoàn thành! Học phí đã được giải ngân về ví gia sư thành công.');
+      await fetchBookings();
+      if (onWalletUpdated) onWalletUpdated();
+    } catch (err) {
+      alert('Không thể hoàn thành đơn kết nối: ' + (err.data?.message || err.message));
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   // Xóa đơn đã hủy khỏi giao diện hiển thị
   const handleDeleteFromView = (bookingId) => {
     setBookings(prev => prev.filter(b => b.id !== bookingId));
@@ -429,6 +450,36 @@ export default function TutorBookingsModal({
                             title="Gửi khiếu nại nếu thông tin liên hệ gia sư không chính xác hoặc gia sư từ chối nhận dạy"
                           >
                             <Scale size={14} /> Khiếu nại
+                          </button>
+                        )}
+
+                        {/* Nút Xác nhận hoàn thành & Giải ngân cho Gia sư khi đã thanh toán */}
+                        {!isTutor && isPaid && (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{
+                              fontSize: '0.82rem',
+                              padding: '6px 14px',
+                              backgroundColor: '#16a34a',
+                              borderColor: '#16a34a',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontWeight: 600,
+                              boxShadow: '0 1px 3px rgba(22, 163, 74, 0.3)'
+                            }}
+                            disabled={completingId === booking.id}
+                            onClick={() => handleCompleteBooking(booking.id)}
+                            title="Xác nhận buổi học/dịch vụ hoàn tất để giải ngân tiền cho gia sư"
+                          >
+                            {completingId === booking.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <CheckCircle2 size={14} />
+                            )}
+                            Xác nhận hoàn thành & Giải ngân
                           </button>
                         )}
 
