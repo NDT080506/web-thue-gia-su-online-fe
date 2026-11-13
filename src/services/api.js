@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Helper giải mã JWT payload và trích xuất vai trò (Role)
@@ -231,7 +231,28 @@ export const courseApi = {
 
   // GET /course-enrollments/course/:courseId (Lấy các lượt ghi danh của khóa học)
   getMyEnrollmentByCourse: async (courseId) => {
-    return await request(`/course-enrollments/course/${courseId}`);
+    try {
+      const enrollments = await courseApi.getMyEnrollments(0, 100);
+      return (enrollments || []).find((e) => e.courseId === courseId) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)
+  updateProgress: async (enrollmentId, progressPercent) => {
+    return await request(`/course-enrollments/${enrollmentId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
+  },
+
+  // PATCH /course-enrollments/course/:courseId/progress (Cập nhật tiến độ theo courseId)
+  updateProgressByCourse: async (courseId, progressPercent) => {
+    return await request(`/course-enrollments/course/${courseId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
   },
 
   // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)

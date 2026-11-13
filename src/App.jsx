@@ -159,12 +159,16 @@ export default function App() {
     }
   };
 
-  // Lấy danh sách khóa học mà học sinh hiện tại đã đăng ký
+  // Lấy danh sách khóa học mà học sinh hiện tại đã đăng ký (chỉ khóa đã kích hoạt ACTIVE hoặc COMPLETED)
   const loadUserEnrollments = async () => {
     try {
       const enrollments = await courseApi.getMyEnrollments();
       if (enrollments && Array.isArray(enrollments)) {
-        setEnrolledCourseIds(enrollments.map(e => e.courseId));
+        setEnrolledCourseIds(
+          enrollments
+            .filter((e) => e.status === 'ACTIVE' || e.status === 'COMPLETED')
+            .map((e) => e.courseId)
+        );
       }
     } catch (e) {
       console.log('Chưa thể lấy danh sách khóa học đã đăng ký:', e.message);
