@@ -30,7 +30,16 @@ export default function ConversationsModal({
 
   // Tải danh sách cuộc trò chuyện cùng tin nhắn mới nhất
   const fetchConversations = async () => {
-    if (!currentUser) return;
+    if (
+      !currentUser ||
+      !['STUDENT', 'TUTOR'].includes(currentUser.role)
+    ) {
+      setConversations([]);
+      setLoading(false);
+      setRefreshing(false);
+      return;
+    }
+    
     try {
       setLoading(true);
       const convList = await conversationApi.getMyConversations();

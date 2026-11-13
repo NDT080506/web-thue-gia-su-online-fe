@@ -147,10 +147,11 @@ export default function App() {
 
   // Lấy số lượng cuộc trò chuyện Messenger từ CSDL
   const loadConversationsCount = async (user) => {
-    if (!user) {
+    if (!user || !['STUDENT', 'TUTOR'].includes(user.role)) {
       setConversationCount(0);
       return;
     }
+    
     try {
       const convs = await conversationApi.getMyConversations();
       setConversationCount(convs ? convs.length : 0);
@@ -160,7 +161,13 @@ export default function App() {
   };
 
   // Lấy danh sách khóa học mà học sinh hiện tại đã đăng ký (chỉ khóa đã kích hoạt ACTIVE hoặc COMPLETED)
-  const loadUserEnrollments = async () => {
+  const loadUserEnrollments = async (user) => {
+
+    if (user?.role !== 'STUDENT') {
+      setEnrolledCourseIds([]);
+      return;
+    }
+
     try {
       const enrollments = await courseApi.getMyEnrollments();
       if (enrollments && Array.isArray(enrollments)) {
@@ -248,7 +255,7 @@ export default function App() {
     }
     if (checkoutData.type === 'course' && checkoutData.item?.id) {
       setEnrolledCourseIds(prev => [...prev, checkoutData.item.id]);
-      loadUserEnrollments();
+      loadUserEnrollments(currentUser);
     }
   };
 
@@ -269,7 +276,7 @@ export default function App() {
           }
           setCurrentUser(user);
           await loadUserWallet(user);
-          await loadUserEnrollments();
+          await loadUserEnrollments(user);
           await loadUserNotifications(user);
           await loadCartAndWishlist(user);
           await loadConversationsCount(user);
@@ -285,7 +292,7 @@ export default function App() {
               role: tokenRole || 'STUDENT'
             };
             setCurrentUser(fallbackUser);
-            await loadUserEnrollments();
+            await loadUserEnrollments(fallbackUser);
             await loadUserNotifications(fallbackUser);
             await loadCartAndWishlist(fallbackUser);
             await loadConversationsCount(fallbackUser);
@@ -339,7 +346,7 @@ export default function App() {
       setIsAdminView(true);
     }
     await loadUserWallet(user);
-    await loadUserEnrollments();
+    await loadUserEnrollments(user);
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
     await loadConversationsCount(user);
@@ -394,7 +401,7 @@ export default function App() {
   const handleCheckoutCart = async () => {
     try {
       await cartApi.checkout();
-      await loadUserEnrollments();
+      await loadUserEnrollments(currentUser);
       await loadCartAndWishlist(currentUser);
       await loadUserWallet(currentUser);
       alert('🎉 Thanh toán & Ghi danh thành công tất cả khóa học trong giỏ hàng! Toàn bộ video bài giảng đã được mở khóa.');
@@ -483,6 +490,12 @@ export default function App() {
       handleOpenAuth('login');
       return false;
     }
+
+    if (currentUser.role !== 'STUDENT') {
+      alert('Chỉ học viên mới có thể đăng ký khóa học.');
+      return false;
+    }
+
     try {
       if (isBackendOnline) {
         // Nếu khóa học miễn phí
@@ -749,9 +762,15 @@ export default function App() {
         onOpenConversations={() => {
           if (!currentUser) {
             handleOpenAuth('login');
-          } else {
-            setConversationsModalOpen(true);
+            return;
           }
+
+          if (!['STUDENT', 'TUTOR'].includes(currentUser.role)) {
+            alert('Chức năng dành cho học viên và gia sư.');
+            return;
+          }
+
+          setConversationsModalOpen(true);
         }}
         onOpenAdmin={() => {
           setIsAdminView(true);
