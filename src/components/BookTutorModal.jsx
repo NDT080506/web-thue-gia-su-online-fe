@@ -47,30 +47,6 @@ export default function BookTutorModal({
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(amount || 0);
   };
 
-  const defaultBrokeragePackages = [
-    {
-      id: '33333333-aaaa-bbbb-cccc-000000000001',
-      name: '[Gói Dạy Kèm 1-1] 3 Buổi Kèm Riêng & Ký Quỹ Escrow',
-      price: 450000,
-      platformFeePercent: 10,
-      description: 'Học phí được giữ trong ký quỹ. Khi học xong học viên xác nhận thì 90% học phí về ví gia sư, 10% phí sàn.'
-    },
-    {
-      id: '33333333-aaaa-bbbb-cccc-000000000010',
-      name: '[Gói Môi Giới] Phí Kết Nối Môi Giới Tiêu Chuẩn',
-      price: 150000,
-      platformFeePercent: 100,
-      description: 'Mở khóa ngay SĐT, Zalo và địa chỉ gia sư. Hai bên chủ động liên hệ và sắp xếp lịch học trực tiếp.'
-    },
-    {
-      id: '33333333-aaaa-bbbb-cccc-000000000020',
-      name: '[Gói Môi Giới] Phí Kết Nối Môi Giới VIP (Bảo hành đổi gia sư)',
-      price: 300000,
-      platformFeePercent: 100,
-      description: 'Mở khóa liên hệ + Bảo hành đổi gia sư miễn phí trong 30 ngày nếu không phù hợp.'
-    }
-  ];
-
   useEffect(() => {
     if (!isOpen || !tutor) {
       setBookingSuccess(null);
@@ -103,13 +79,13 @@ export default function BookTutorModal({
             setPackages(pkgs);
             setSelectedPackage(pkgs[0]);
           } else {
-            setPackages(defaultBrokeragePackages);
-            setSelectedPackage(defaultBrokeragePackages[0]);
+            setPackages([]);
+            setSelectedPackage(null);
           }
         } catch (e) {
           console.warn('Lỗi tải gói dịch vụ:', e.message);
-          setPackages(defaultBrokeragePackages);
-          setSelectedPackage(defaultBrokeragePackages[0]);
+          setPackages([]);
+          setSelectedPackage(null);
         }
       } finally {
         setLoading(false);
@@ -466,48 +442,69 @@ export default function BookTutorModal({
 
                 {/* Package list */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  {packages.map((pkg) => (
-                    <label
-                      key={pkg.id}
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        padding: '14px 18px',
-                        borderRadius: 6,
-                        border: selectedPackage?.id === pkg.id && agreedTerms
-                          ? '2px solid #a435f0'
-                          : '1px solid #e4e8eb',
-                        background: selectedPackage?.id === pkg.id && agreedTerms
-                          ? '#fcf8ff'
-                          : '#ffffff',
-                        cursor: agreedTerms ? 'pointer' : 'not-allowed',
-                        transition: 'all 0.2s'
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                        <input
-                          type="radio"
-                          name="brokeragePackage"
-                          checked={selectedPackage?.id === pkg.id}
-                          onChange={() => agreedTerms && setSelectedPackage(pkg)}
-                          disabled={!agreedTerms}
-                          style={{ accentColor: '#a435f0', cursor: 'pointer' }}
-                        />
-                        <div>
-                          <strong style={{ fontSize: '0.95rem', color: '#1c1d1f' }}>{pkg.name}</strong>
-                          <div style={{ fontSize: '0.8rem', color: '#6a6f73', marginTop: 2 }}>
-                            {pkg.description || 'Phí môi giới kết nối gia sư • Mở khóa SĐT/Zalo • Tự do sắp xếp lịch dạy trực tiếp'}
+                  {packages.length === 0 ? (
+                    <div style={{ padding: '24px 18px', textAlign: 'center', background: '#fffbeb', border: '1px dashed #f59e0b', borderRadius: 8 }}>
+                      <p style={{ margin: '0 0 10px', fontWeight: 600, color: '#92400e', fontSize: '0.95rem' }}>
+                        ⚠️ Gia sư {tutor.name} hiện chưa đăng tải gói dịch vụ kết nối trực tuyến nào trên hệ thống.
+                      </p>
+                      <p style={{ margin: '0 0 16px', color: '#78350f', fontSize: '0.85rem' }}>
+                        Bạn có thể nhắn tin trực tiếp với gia sư để trao đổi yêu cầu học tập và học phí. Gia sư sẽ tạo gói dịch vụ phù hợp để bạn đặt lịch!
+                      </p>
+                      <div style={{ display: 'flex', gap: 10, justifyContent: 'center' }}>
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => { onClose(); if (onOpenChat) onOpenChat(tutor); }}
+                          style={{ fontSize: '0.85rem', padding: '8px 18px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
+                        >
+                          <MessageCircle size={15} /> Nhắn tin trao đổi ngay
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    packages.map((pkg) => (
+                      <label
+                        key={pkg.id}
+                        style={{
+                          display: 'flex',
+                          justifyContent: 'space-between',
+                          alignItems: 'center',
+                          padding: '14px 18px',
+                          borderRadius: 6,
+                          border: selectedPackage?.id === pkg.id && agreedTerms
+                            ? '2px solid #a435f0'
+                            : '1px solid #e4e8eb',
+                          background: selectedPackage?.id === pkg.id && agreedTerms
+                            ? '#fcf8ff'
+                            : '#ffffff',
+                          cursor: agreedTerms ? 'pointer' : 'not-allowed',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <input
+                            type="radio"
+                            name="brokeragePackage"
+                            checked={selectedPackage?.id === pkg.id}
+                            onChange={() => agreedTerms && setSelectedPackage(pkg)}
+                            disabled={!agreedTerms}
+                            style={{ accentColor: '#a435f0', cursor: 'pointer' }}
+                          />
+                          <div>
+                            <strong style={{ fontSize: '0.95rem', color: '#1c1d1f' }}>{pkg.name}</strong>
+                            <div style={{ fontSize: '0.8rem', color: '#6a6f73', marginTop: 2 }}>
+                              {pkg.description || 'Phí môi giới kết nối gia sư • Mở khóa SĐT/Zalo • Tự do sắp xếp lịch dạy trực tiếp'}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div style={{ textAlign: 'right' }}>
-                        <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1c1d1f', fontFamily: 'Outfit, sans-serif' }}>
-                          {formatVND(pkg.price)}
-                        </span>
-                      </div>
-                    </label>
-                  ))}
+                        <div style={{ textAlign: 'right' }}>
+                          <span style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1c1d1f', fontFamily: 'Outfit, sans-serif' }}>
+                            {formatVND(pkg.price)}
+                          </span>
+                        </div>
+                      </label>
+                    ))
+                  )}
                 </div>
               </div>
 
@@ -540,20 +537,22 @@ export default function BookTutorModal({
                 <button
                   className="btn btn-primary btn-lg"
                   onClick={handleConfirmBooking}
-                  disabled={isBooking || !agreedTerms || !selectedPackage}
+                  disabled={isBooking || !agreedTerms || packages.length === 0 || !selectedPackage}
                   style={{
-                    opacity: !agreedTerms ? 0.5 : 1,
-                    cursor: !agreedTerms ? 'not-allowed' : 'pointer',
+                    opacity: (!agreedTerms || packages.length === 0 || !selectedPackage) ? 0.5 : 1,
+                    cursor: (!agreedTerms || packages.length === 0 || !selectedPackage) ? 'not-allowed' : 'pointer',
                     backgroundColor: '#a435f0',
                     borderColor: '#a435f0'
                   }}
-                  title={!agreedTerms ? 'Bạn cần tick đồng ý quy chế ở Bước 1 trước' : 'Đăng ký gói môi giới'}
+                  title={!agreedTerms ? 'Bạn cần tick đồng ý quy chế ở Bước 1 trước' : (packages.length === 0 ? 'Gia sư chưa có gói dịch vụ' : 'Đăng ký gói môi giới')}
                 >
                   {isBooking ? (
                     <>
                       <Loader2 size={18} className="animate-spin" style={{ display: 'inline', marginRight: 6 }} />
                       Đang xử lý đăng ký...
                     </>
+                  ) : packages.length === 0 ? (
+                    'Gia sư chưa có gói dịch vụ'
                   ) : (
                     'Xác nhận & Đăng ký Gói Môi Giới'
                   )}

@@ -312,6 +312,12 @@ export const messageApi = {
 
 /* ==================== 5. BROKERAGE PACKAGES ==================== */
 export const brokeragePackageApi = {
+  // GET /brokerage-packages (Lấy tất cả các gói dịch vụ active công khai)
+  getAllActivePackages: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/brokerage-packages', page, size));
+    return extractPageContent(res);
+  },
+
   // GET /brokerage-packages/tutor/:tutorId (trả về Page<BrokeragePackageResponse>)
   getPackagesByTutor: async (tutorId, page = 0, size = 100) => {
     const res = await request(withPagination(`/brokerage-packages/tutor/${tutorId}`, page, size));
@@ -638,6 +644,14 @@ export const paymentApi = {
 };
 
 /* ==================== 14. TUTOR APPLICATION API ==================== */
+export const tutorApi = {
+  // GET /users/tutors (Lấy danh sách tất cả gia sư có role TUTOR)
+  getTutors: async (page = 0, size = 100) => {
+    const res = await request(withPagination('/users/tutors', page, size));
+    return extractPageContent(res);
+  },
+};
+
 export const tutorApplicationApi = {
   // POST /tutor-applications (Nộp đơn ứng tuyển gia sư)
   createApplication: async (data) => {

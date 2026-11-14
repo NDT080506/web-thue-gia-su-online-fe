@@ -89,7 +89,7 @@ export default function ConversationsModal({
     if (isStudent) {
       const matchedTutor = topTutors.find(t => t.id === conv.tutorId);
       return {
-        name: conv.tutorName === 'user001' ? 'Gia sư user001 (ThS. Đặng Thị Bích Thủy)' : (conv.tutorName || 'Gia sư 1-1'),
+        name: matchedTutor?.name || conv.tutorName || 'Gia sư 1-1',
         role: 'Gia sư chuyên nghiệp',
         avatar: matchedTutor?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
         tutorObject: matchedTutor || {
