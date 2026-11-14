@@ -14,7 +14,6 @@ import {
   GraduationCap
 } from 'lucide-react';
 import { conversationApi, messageApi } from '../services/api';
-import { topTutors } from '../data/mockData';
 
 export default function ConversationsModal({ 
   isOpen, 
@@ -95,35 +94,43 @@ export default function ConversationsModal({
   // Tìm avatar và thông tin hiển thị của đối phương
   const getPartnerInfo = (conv) => {
     const isStudent = currentUser?.role === 'STUDENT';
+
     if (isStudent) {
-      const matchedTutor = topTutors.find(t => t.id === conv.tutorId);
-      return {
-        name: conv.tutorName === 'user001' ? 'Gia sư user001 (ThS. Đặng Thị Bích Thủy)' : (conv.tutorName || 'Gia sư 1-1'),
-        role: 'Gia sư chuyên nghiệp',
-        avatar: matchedTutor?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
-        tutorObject: matchedTutor || {
-          id: conv.tutorId,
-          name: conv.tutorName,
-          title: 'Gia sư 1-1 chuyên môn',
-          degree: 'ThS. Toán học - Đại học Sư Phạm',
-          avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
-          rating: 5.0,
-          reviews: 142
-        }
+      const defaultAvatar =
+        'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80';
+
+      const tutor = {
+        id: conv.tutorId,
+        name: conv.tutorName || 'Gia sư',
+        avatar: conv.tutorAvatar || defaultAvatar,
+        title: conv.tutorTitle || '',
+        degree: conv.tutorDegree || '',
       };
-    } else {
+
       return {
-        name: conv.studentName || 'Học viên',
-        role: 'Học viên đăng ký học',
-        avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
-        studentObject: {
-          id: conv.studentId,
-          displayName: conv.studentName
-        }
+        name: tutor.name,
+        role: 'Gia sư chuyên nghiệp',
+        avatar: tutor.avatar,
+        tutorObject: tutor
       };
     }
-  };
 
+    const defaultAvatar =
+      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
+
+    const student = {
+      id: conv.studentId,
+      displayName: conv.studentName || 'Học viên',
+      avatar: conv.studentAvatar || defaultAvatar
+    };
+
+    return {
+      name: student.displayName,
+      role: 'Học viên',
+      avatar: student.avatar,
+      studentObject: student
+    };
+  };
   // Format thời gian hiển thị tương đối
   const formatTime = (isoString) => {
     if (!isoString) return '';

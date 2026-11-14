@@ -157,11 +157,15 @@ export default function App() {
       setConversationCount(0);
       return;
     }
-    
+
     try {
       const convs = await conversationApi.getMyConversations();
-      setConversationCount(convs ? convs.length : 0);
+
+      setConversationCount(
+        Array.isArray(convs) ? convs.length : 0
+      );
     } catch (e) {
+      console.warn('Lỗi tải số lượng cuộc trò chuyện:', e);
       setConversationCount(0);
     }
   };
@@ -358,18 +362,19 @@ export default function App() {
   }, []);
 
   // Fetch latest brokerage packages for tutors from Backend
-  const loadTutorPackages = async () => {
+  const loadTutorPackages = async (tutorId) => {
+    if (!tutorId) return;
+
     try {
-      const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
-      const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
-      if (pkgs && Array.isArray(pkgs)) {
+      const pkgs = await brokeragePackageApi.getPackagesByTutor(tutorId);
+
+      if (Array.isArray(pkgs)) {
         setTutors((prev) =>
-          prev.map((t) => {
-            if (t.id === user001Id) {
-              return { ...t, packages: pkgs };
-            }
-            return t;
-          })
+          prev.map((t) =>
+            t.id === tutorId
+              ? { ...t, packages: pkgs }
+              : t
+          )
         );
       }
     } catch (e) {
@@ -381,8 +386,12 @@ export default function App() {
   const fetchCourses = async () => {
     try {
       const realCourses = await courseApi.getCourses();
-      if (realCourses && realCourses.length > 0) {
-        const formatted = realCourses.map((c, i) => formatCourseFromBackend(c, i));
+
+      if (Array.isArray(realCourses)) {
+        const formatted = realCourses.map((c, i) =>
+          formatCourseFromBackend(c, i)
+        );
+
         setCourses(formatted);
       }
     } catch (err) {
@@ -396,6 +405,12 @@ export default function App() {
       handleOpenAuth('login');
       return;
     }
+
+    if (currentUser.role !== 'TUTOR') {
+      alert('Chỉ gia sư mới được tạo gói dịch vụ và khóa học.');
+      return;
+    }
+
     setCreatePackageInitialTab(tab);
     setCreatePackageModalOpen(true);
   };
@@ -1116,13 +1131,17 @@ export default function App() {
         onClose={() => setCreatePackageModalOpen(false)}
         currentUser={currentUser}
         initialTab={createPackageInitialTab}
-        onPackageCreated={() => {
-          loadTutorPackages();
-          loadUserNotifications(currentUser);
+        onPackageCreated={async () => {
+          await Promise.all([
+            loadTutorPackages(currentUser?.id),
+            loadUserNotifications(currentUser)
+          ]);
         }}
-        onCourseCreated={() => {
-          fetchCourses();
-          loadUserNotifications(currentUser);
+        onCourseCreated={async () => {
+          await Promise.all([
+            fetchCourses(),
+            loadUserNotifications(currentUser)
+          ]);
         }}
       />
     </div>
