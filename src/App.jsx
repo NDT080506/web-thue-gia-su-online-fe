@@ -273,150 +273,244 @@ export default function App() {
   // Check Backend connection & load real data if online
   useEffect(() => {
     async function initData() {
-      // 1. Kiểm tra trạng thái Backend
       const online = await checkBackendHealth();
+
       setIsBackendOnline(online);
 
-      // 2. Nếu có token cũ, tự động lấy thông tin người dùng: GET /users
+      // Lưu user bên ngoài try để sử dụng ở cuối initData
+      let savedUser = null;
+
       if (authApi.isAuthenticated()) {
         try {
           const user = await authApi.getMyInfo();
-          const tokenRole = getRoleFromToken(authApi.getToken());
+
+          const tokenRole = getRoleFromToken(
+            authApi.getToken()
+          );
+
           if (user && tokenRole) {
             user.role = tokenRole;
           }
+
+          savedUser = user;
+
           setCurrentUser(user);
+
           await loadUserWallet(user);
           await loadUserEnrollments(user);
           await loadUserNotifications(user);
           await loadCartAndWishlist(user);
           await loadConversationsCount(user);
+
         } catch (e) {
-          console.log('Chưa đăng nhập hoặc token hết hạn:', e.message);
+          console.log(
+            'Không thể khôi phục phiên đăng nhập:',
+            e.message
+          );
+
           const token = authApi.getToken();
-          const tokenRole = getRoleFromToken(token);
           const payload = parseJwtPayload(token);
-          if (payload && payload.exp && payload.exp * 1000 > Date.now()) {
+
+          // Token bị từ chối hoặc hết hạn: xóa phiên local
+          if (
+            e.status === 401 ||
+            !payload ||
+            !payload.exp ||
+            payload.exp * 1000 <= Date.now()
+          ) {
+            authApi.clearSession();
+            setCurrentUser(null);
+
+          } else {
+            const tokenRole = getRoleFromToken(token);
+
+            // Chỉ dùng fallback khi chưa nhận được 401
             const fallbackUser = {
               id: payload.sub,
-              displayName: tokenRole === 'ADMIN' ? 'Admin' : (tokenRole === 'TUTOR' ? 'Gia sư' : 'Học viên'),
-              role: tokenRole || 'STUDENT'
+              displayName:
+                tokenRole === 'ADMIN'
+                  ? 'Admin'
+                  : tokenRole === 'TUTOR'
+                    ? 'Gia sư'
+                    : 'Học viên',
+              role: tokenRole || 'STUDENT',
             };
+
+            savedUser = fallbackUser;
+
             setCurrentUser(fallbackUser);
+
             await loadUserEnrollments(fallbackUser);
             await loadUserNotifications(fallbackUser);
             await loadCartAndWishlist(fallbackUser);
             await loadConversationsCount(fallbackUser);
             await loadUserWallet(fallbackUser);
-          } else {
-            authApi.logout();
-            setCurrentUser(null);
           }
         }
+
       } else {
         setCurrentUser(null);
       }
 
-      // 3. Nếu Backend online, lấy bài viết thật từ GET /articles
       if (online) {
         try {
           const realArticles = await articleApi.getArticles();
-          if (realArticles && realArticles.length > 0) {
+
+          if (realArticles?.length > 0) {
             setArticles(realArticles);
           }
         } catch (err) {
           console.warn('Lỗi lấy articles từ BE:', err);
         }
 
-        // Lấy danh sách khóa học thật từ GET /courses
         try {
           const realCourses = await courseApi.getCourses();
-          if (realCourses && realCourses.length > 0) {
-            const formatted = realCourses.map((c, i) => formatCourseFromBackend(c, i));
+
+          if (realCourses?.length > 0) {
+            const formatted = realCourses.map(
+              (c, i) => formatCourseFromBackend(c, i)
+            );
+
             setCourses(formatted);
           }
         } catch (err) {
           console.warn('Lỗi lấy courses từ BE:', err);
         }
 
-        // Đồng bộ danh sách gia sư và tất cả gói dịch vụ thật từ Backend
+        // Đã khai báo savedUser ở đầu hàm
         await fetchTutorsAndPackages(savedUser);
       }
     }
 
-    initData();
+    initData().catch((err) => {
+      console.error('Lỗi khởi tạo dữ liệu:', err);
+    });
+
   }, []);
 
   // Đồng bộ danh sách gia sư và các gói dịch vụ trực tuyến từ Backend (hoàn toàn linh hoạt theo bất kỳ gia sư nào)
-  const fetchTutorsAndPackages = async (activeUser = currentUser) => {
+  const fetchTutorsAndPackages = async (
+    activeUser = currentUser
+  ) => {
     try {
-      // 1. Lấy danh sách gia sư thật từ Backend (GET /users/tutors)
+      // 1. Lấy danh sách hồ sơ gia sư
       let realTutors = [];
+
       try {
-        const resTutors = await tutorApi.getTutors();
-        if (Array.isArray(resTutors) && resTutors.length > 0) {
-          realTutors = resTutors;
-        }
+        realTutors = await tutorApi.getTutors();
       } catch (err) {
-        console.warn('Lỗi lấy danh sách gia sư từ BE:', err);
+        console.warn(
+          'Lỗi lấy danh sách gia sư:',
+          err.message
+        );
       }
 
-      // 2. Lấy tất cả các gói dịch vụ active từ Backend (GET /brokerage-packages)
-      let allPkgs = [];
-      try {
-        const resPkgs = await brokeragePackageApi.getAllActivePackages();
-        if (Array.isArray(resPkgs)) {
-          allPkgs = resPkgs;
-        }
-      } catch (err) {
-        console.warn('Lỗi lấy gói dịch vụ từ BE:', err);
-      }
+      // 2. Lấy ID gia sư
+      const tutorIds = [
+        ...new Set([
+          ...realTutors.map((t) => t.id || t.userId),
 
-      // 3. Chuẩn hóa và map danh sách gia sư
+          ...(activeUser?.role === 'TUTOR' && activeUser.id
+            ? [activeUser.id]
+            : []),
+        ].filter(Boolean)),
+      ];
+
+      // 3. Lấy gói active của từng gia sư
+      const packageResults = await Promise.all(
+        tutorIds.map(async (tutorId) => {
+          try {
+            return await brokeragePackageApi.getPackagesByTutor(
+              tutorId
+            );
+          } catch (err) {
+            console.warn(
+              `Lỗi lấy gói của gia sư ${tutorId}:`,
+              err.message
+            );
+
+            return [];
+          }
+        })
+      );
+
+      const allPkgs = packageResults.flat();
+
+      // 4. Chuẩn hóa danh sách gia sư
       setTutors((prev) => {
-        const baseTutors = prev && prev.length > 0 ? prev : topTutors;
+        const baseTutors =
+          prev?.length > 0 ? prev : topTutors;
+
         const mapById = new Map();
 
-        // Đưa các template gia sư có sẵn vào map
-        baseTutors.forEach((t) => mapById.set(t.id, { ...t }));
+        baseTutors.forEach((tutor) => {
+          mapById.set(tutor.id, { ...tutor });
+        });
 
-        // Cập nhật hoặc thêm mới các gia sư thật từ Database
         realTutors.forEach((rt, idx) => {
-          const pkgsForThisTutor = allPkgs.filter((p) => p.tutorId === rt.id);
-          const existing = mapById.get(rt.id);
+          const tutorId = rt.id || rt.userId;
+
+          const pkgsForThisTutor = allPkgs.filter(
+            (pkg) => pkg.tutorId === tutorId
+          );
+
+          const existing = mapById.get(tutorId);
+
+          const subjects = Array.isArray(rt.subjectsCanTeach)
+            ? rt.subjectsCanTeach
+            : (rt.subjectsCanTeach || '')
+                .split(/[,;\n]/)
+                .map((item) => item.trim())
+                .filter(Boolean);
 
           if (existing) {
-            mapById.set(rt.id, {
+            mapById.set(tutorId, {
               ...existing,
               name: rt.displayName || existing.name,
-              email: rt.email,
+              bio: rt.bio || existing.bio,
               avatar: rt.avatarUrl || existing.avatar,
-              packages: pkgsForThisTutor
+              rating: Number(rt.rating ?? existing.rating ?? 5),
+              subjects: subjects.length
+                ? subjects
+                : existing.subjects,
+              packages: pkgsForThisTutor,
             });
           } else {
-            mapById.set(rt.id, {
-              id: rt.id,
-              name: rt.displayName || `Gia sư ${rt.displayName || idx + 1}`,
-              title: 'Gia sư chuyên môn cao EduTutor',
-              degree: 'Hồ sơ & bằng cấp đã qua kiểm định',
-              experience: 'Gia sư tận tâm 1-1',
-              avatar: rt.avatarUrl || `https://images.unsplash.com/photo-${1573497019940 + (idx % 5)}?auto=format&fit=crop&w=250&q=80`,
-              rating: 5.0,
+            mapById.set(tutorId, {
+              id: tutorId,
+              name: rt.displayName || `Gia sư ${idx + 1}`,
+              title: 'Gia sư chuyên môn EduTutor',
+              degree: 'Hồ sơ gia sư EduTutor',
+              experience: 'Gia sư trực tuyến',
+              avatar:
+                rt.avatarUrl ||
+                'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=250&q=80',
+              rating: Number(rt.rating ?? 5),
               reviews: 0,
               students: 0,
-              hourlyRate: pkgsForThisTutor[0]?.price || 250000,
-              subjects: ['Toán 10-12', 'Tiếng Anh', 'Lập trình', 'Khoa học'],
+              hourlyRate:
+                pkgsForThisTutor[0]?.price || 250000,
+              subjects: subjects.length
+                ? subjects
+                : ['Dạy kèm 1-1'],
               isVerified: true,
-              bio: `Gia sư ${rt.displayName}. Nhận dạy kèm 1-1 và hướng dẫn lộ trình học tập hiệu quả.`,
-              packages: pkgsForThisTutor
+              bio: rt.bio || '',
+              packages: pkgsForThisTutor,
             });
           }
         });
 
-        // Nếu người dùng hiện tại là TUTOR, bảo đảm luôn có mặt trong danh sách gia sư
-        if (activeUser && activeUser.role === 'TUTOR' && activeUser.id) {
-          const myPkgs = allPkgs.filter((p) => p.tutorId === activeUser.id);
+        // 5. Bảo đảm gia sư đang đăng nhập có trong danh sách
+        if (
+          activeUser?.role === 'TUTOR' &&
+          activeUser.id
+        ) {
+          const myPkgs = allPkgs.filter(
+            (pkg) => pkg.tutorId === activeUser.id
+          );
+
           const existing = mapById.get(activeUser.id);
+
           if (existing) {
             existing.packages = myPkgs;
             mapById.set(activeUser.id, existing);
@@ -425,32 +519,39 @@ export default function App() {
               id: activeUser.id,
               name: activeUser.displayName || 'Gia sư (Bạn)',
               title: 'Gia sư chuyên môn 1-1',
-              degree: 'Tài khoản gia sư đã kích hoạt',
-              experience: 'Gia sư EduTutor',
-              avatar: activeUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-              rating: 5.0,
+              degree: 'Hồ sơ gia sư EduTutor',
+              avatar:
+                activeUser.avatarUrl ||
+                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+              rating: 5,
               reviews: 0,
               students: 0,
               hourlyRate: myPkgs[0]?.price || 250000,
-              subjects: ['Dạy kèm 1-1', 'Luyện thi'],
+              subjects: ['Dạy kèm 1-1'],
               isVerified: true,
-              bio: 'Tài khoản gia sư đang đăng nhập. Sẵn sàng kết nối và nhận lớp học.',
-              packages: myPkgs
+              bio: '',
+              packages: myPkgs,
             });
           }
         }
 
-        // Đồng bộ gói dịch vụ tương ứng cho từng gia sư
-        return Array.from(mapById.values()).map((t) => {
-          const matchedPkgs = allPkgs.filter((p) => p.tutorId === t.id);
-          if (matchedPkgs.length > 0) {
-            return { ...t, packages: matchedPkgs };
-          }
-          return t;
+        // 6. Đồng bộ gói dịch vụ cho từng gia sư
+        return Array.from(mapById.values()).map((tutor) => {
+          const matchedPkgs = allPkgs.filter(
+            (pkg) => pkg.tutorId === tutor.id
+          );
+
+          return matchedPkgs.length > 0
+            ? { ...tutor, packages: matchedPkgs }
+            : tutor;
         });
       });
-    } catch (e) {
-      console.warn('Lỗi đồng bộ gia sư và gói dịch vụ:', e);
+
+    } catch (err) {
+      console.warn(
+        'Lỗi đồng bộ gia sư và gói dịch vụ:',
+        err
+      );
     }
   };
 
@@ -844,8 +945,7 @@ export default function App() {
             <button
               onClick={() => {
                 if (currentUser) {
-                  authApi.logout();
-                  setCurrentUser(null);
+                  handleLogout();
                 }
                 setAuthMode('login');
                 setAuthModalOpen(true);

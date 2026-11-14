@@ -36,34 +36,48 @@ export function getRoleFromToken(token) {
  * Helper to make HTTP requests with JWT token attachment
  */
 async function request(endpoint, options = {}) {
+  const { skipAuth = false, ...fetchOptions } = options;
   const token = localStorage.getItem('token');
-  
+
   const headers = {
     'Content-Type': 'application/json',
-    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    ...options.headers,
+
+    ...(token && !skipAuth
+      ? { Authorization: `Bearer ${token}` }
+      : {}),
+
+    ...fetchOptions.headers,
   };
 
   try {
     const res = await fetch(`${BASE_URL}${endpoint}`, {
-      ...options,
+      ...fetchOptions,
       headers,
     });
 
     const data = await res.json().catch(() => null);
 
     if (!res.ok) {
-      const errorMsg = data?.message || `Lỗi HTTP: ${res.status}`;
-      const err = new Error(errorMsg);
-      err.status = res.status;
-      err.data = data;
-      throw err;
+      const error = new Error(
+        data?.message || `Lỗi HTTP: ${res.status}`
+      );
+
+      error.status = res.status;
+      error.data = data;
+
+      throw error;
     }
 
-    // Spring Boot ApiResponse format: { code: 1000, message: "...", result: ... }
-    return data?.result !== undefined ? data.result : data;
+    return data?.result !== undefined
+      ? data.result
+      : data;
+
   } catch (error) {
-    console.warn(`[API] Gọi ${endpoint} thất bại:`, error.message);
+    console.warn(
+      `[API] Gọi ${endpoint} thất bại:`,
+      error.message
+    );
+
     throw error;
   }
 }
@@ -126,25 +140,34 @@ export const authApi = {
   // POST /auth/logout
   logout: async () => {
     const accessToken = localStorage.getItem('token');
-
-    if (!accessToken) {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
-      return;
-    }
+    const refreshToken = localStorage.getItem('refreshToken');
 
     try {
+      if (!accessToken || !refreshToken) {
+        throw new Error(
+          'Không tìm thấy access token hoặc refresh token.'
+        );
+      }
+
       await request('/auth/logout', {
         method: 'POST',
+        skipAuth: true,
         body: JSON.stringify({
-          token: accessToken
+          accessToken,
+          refreshToken,
         }),
       });
+
     } finally {
       localStorage.removeItem('token');
       localStorage.removeItem('refreshToken');
     }
   },
+
+clearSession: () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+},
 
   getToken: () => localStorage.getItem('token'),
   isAuthenticated: () => !!localStorage.getItem('token'),
@@ -650,10 +673,25 @@ export const paymentApi = {
 
 /* ==================== 14. TUTOR APPLICATION API ==================== */
 export const tutorApi = {
-  // GET /users/tutors (Lấy danh sách tất cả gia sư có role TUTOR)
   getTutors: async (page = 0, size = 100) => {
-    const res = await request(withPagination('/users/tutors', page, size));
-    return extractPageContent(res);
+    // Endpoint này yêu cầu đăng nhập
+    if (!localStorage.getItem('token')) {
+      return [];
+    }
+
+    const res = await request(
+      withPagination('/tutor-profiles/admin', page, size)
+    );
+
+    return extractPageContent(res).map((profile) => ({
+      id: profile.userId,
+      userId: profile.userId,
+      displayName: null,
+      avatarUrl: null,
+      bio: profile.bio || '',
+      subjectsCanTeach: profile.subjectsCanTeach || '',
+      rating: profile.rating ?? 5,
+    })).filter((tutor) => tutor.id);
   },
 };
 
