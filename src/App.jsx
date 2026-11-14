@@ -31,6 +31,7 @@ import {
   articleApi,
   courseApi,
   bookingApi,
+  brokeragePackageApi,
   cartApi,
   wishlistApi,
   conversationApi,
@@ -65,6 +66,7 @@ export default function App() {
   const [isBackendOnline, setIsBackendOnline] = useState(false);
 
   const [courses, setCourses] = useState(featuredCourses);
+  const [tutors, setTutors] = useState(topTutors);
   const [articles, setArticles] = useState(communityArticles);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -140,13 +142,14 @@ export default function App() {
   // Lọc danh sách gia sư hiển thị theo từ khóa tìm kiếm (nếu có)
   const cleanSearchTerm = removeVietnameseTones(searchKeyword);
   const displayedTutors = cleanSearchTerm
-    ? topTutors.filter(t =>
+    ? tutors.filter(t =>
       removeVietnameseTones(t.name).includes(cleanSearchTerm) ||
       removeVietnameseTones(t.title).includes(cleanSearchTerm) ||
       removeVietnameseTones(t.degree).includes(cleanSearchTerm) ||
-      (t.subjects && t.subjects.some(s => removeVietnameseTones(s).includes(cleanSearchTerm)))
+      (t.subjects && t.subjects.some(s => removeVietnameseTones(s).includes(cleanSearchTerm))) ||
+      (t.packages && t.packages.some(p => removeVietnameseTones(p.name).includes(cleanSearchTerm)))
     )
-    : topTutors;
+    : tutors;
 
   // Lấy số lượng cuộc trò chuyện Messenger từ CSDL
   const loadConversationsCount = async (user) => {
@@ -325,11 +328,49 @@ export default function App() {
         } catch (err) {
           console.warn('Lỗi lấy courses từ BE:', err);
         }
+
+        // Tải các gói dịch vụ thật của gia sư từ GET /brokerage-packages/tutor/:id
+        try {
+          const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
+          const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
+          if (pkgs && Array.isArray(pkgs) && pkgs.length > 0) {
+            setTutors((prev) =>
+              prev.map((t) => {
+                if (t.id === user001Id) {
+                  return { ...t, packages: pkgs };
+                }
+                return t;
+              })
+            );
+          }
+        } catch (err) {
+          console.warn('Lỗi lấy packages từ BE:', err);
+        }
       }
     }
 
     initData();
   }, []);
+
+  // Fetch latest brokerage packages for tutors from Backend
+  const loadTutorPackages = async () => {
+    try {
+      const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
+      const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
+      if (pkgs && Array.isArray(pkgs)) {
+        setTutors((prev) =>
+          prev.map((t) => {
+            if (t.id === user001Id) {
+              return { ...t, packages: pkgs };
+            }
+            return t;
+          })
+        );
+      }
+    } catch (e) {
+      console.warn('Lỗi tải gói dịch vụ gia sư:', e);
+    }
+  };
 
   // Fetch latest courses from Backend
   const fetchCourses = async () => {
@@ -786,7 +827,7 @@ export default function App() {
           window.location.hash = 'admin';
         }}
         courses={courses}
-        tutors={topTutors}
+        tutors={tutors}
         onSearch={handleSearch}
         onSelectCourse={(course) => setSelectedCourse(course)}
         onSelectTutor={(tutor) => handleBookTutor(tutor)}
@@ -1052,6 +1093,7 @@ export default function App() {
         currentUser={currentUser}
         initialTab={createPackageInitialTab}
         onPackageCreated={() => {
+          loadTutorPackages();
           loadUserNotifications(currentUser);
         }}
         onCourseCreated={() => {
