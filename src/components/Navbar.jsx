@@ -234,7 +234,10 @@ export default function Navbar({
 
           {/* Search bar with Live Dropdown */}
             <div ref={searchContainerRef} style={{ position: 'relative', flex: '1 1 260px', maxWidth: 460, minWidth: 200, margin: '0 8px' }}>
-              <form className={`ud-search-form ${isSearchFocused ? 'focused' : ''}`} onSubmit={handleSearchSubmit} style={{ width: '100%', margin: 0 }}>
+              <form
+                className={`ud-search-form ${isSearchFocused ? 'focused' : ''}`}
+                onSubmit={handleSearchSubmit}
+              >
                 <Search size={18} className="ud-search-icon" />
                 <input
                   type="text"

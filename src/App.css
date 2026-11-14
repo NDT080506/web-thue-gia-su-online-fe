@@ -39,176 +39,61 @@
 .ud-navbar-inner {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  justify-content: flex-start;
+  gap: 12px;
   width: 100%;
+  min-width: 0;
 }
 
 .ud-logo {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  font-family: 'Outfit', sans-serif;
-  font-size: 1.6rem;
-  font-weight: 800;
-  color: #1c1d1f;
-  letter-spacing: -0.03em;
-  flex-shrink: 0;
-}
-
-.ud-logo-icon {
-  width: 42px;
-  height: 42px;
-  border-radius: 8px;
-  background: linear-gradient(135deg, #a435f0 0%, #5624d0 100%);
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 4px 10px rgba(164, 53, 240, 0.3);
-}
-
-.ud-logo-text span {
-  color: #a435f0;
+  flex: 0 0 auto;
+  min-width: max-content;
 }
 
 .ud-categories-wrapper {
+  flex: 0 0 auto;
+}
+
+.ud-navbar-search {
   position: relative;
+  flex: 1 1 260px;
+  min-width: 120px;
+  max-width: 460px;
+  margin: 0 4px;
 }
 
-.ud-categories-btn {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.95rem;
-  font-weight: 500;
-  color: #1c1d1f;
-  padding: 10px 14px;
-  border-radius: 4px;
-}
-
-.ud-categories-btn:hover {
-  color: #a435f0;
-  background-color: var(--primary-light);
-}
-
-.ud-categories-dropdown {
-  position: absolute;
-  top: 100%;
-  left: 0;
-  width: 280px;
-  background-color: #ffffff;
-  border: 1px solid var(--border-color);
-  box-shadow: var(--shadow-lg);
-  border-radius: 6px;
-  padding: 12px 0;
-  margin-top: 6px;
-  z-index: 110;
-}
-
-/* Invisible hover bridge to prevent cursor gap when moving from button into dropdown */
-.ud-categories-dropdown::before {
-  content: '';
-  position: absolute;
-  top: -12px;
-  left: 0;
-  right: 0;
-  height: 12px;
-  background: transparent;
-}
-
-.ud-cat-header {
-  padding: 8px 16px;
-  font-size: 0.8rem;
-  text-transform: uppercase;
-  font-weight: 700;
-  color: var(--text-muted);
-  border-bottom: 1px solid var(--border-light);
-  margin-bottom: 6px;
-}
-
-.ud-cat-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 16px;
-  transition: var(--transition);
-}
-
-.ud-cat-item:hover {
-  background-color: var(--primary-light);
-  color: var(--primary);
-}
-
-.cat-icon {
-  color: var(--primary);
-}
-
-.cat-info {
-  display: flex;
-  flex-direction: column;
-}
-
-.cat-name {
-  font-weight: 600;
-  font-size: 0.9rem;
-}
-
-.cat-count {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-}
-
-/* Search Bar */
-.ud-search-form {
-  flex: 1;
-  max-width: 580px;
-  height: 46px;
-  display: flex;
-  align-items: center;
-  background-color: #f7f9fa;
-  border: 1px solid #1c1d1f;
-  border-radius: var(--radius-full);
-  padding: 0 16px;
-  transition: var(--transition);
-  position: relative;
-}
-
-.ud-search-form.focused {
-  background-color: #ffffff;
-  border-color: #a435f0;
-  box-shadow: 0 0 0 2px rgba(164, 53, 240, 0.2);
-}
-
-.ud-search-icon {
-  color: #6a6f73;
-  margin-right: 12px;
-  flex-shrink: 0;
-}
-
-.ud-search-form input {
-  flex: 1;
-  min-width: 0;
-  border: none;
-  background: transparent;
-  font-size: 0.95rem;
-  color: #1c1d1f;
-  outline: none;
-}
-
-.ud-search-clear {
-  color: #6a6f73;
-  display: flex;
-  align-items: center;
-  padding: 4px;
-}
-
-/* Nav Actions */
 .ud-nav-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  justify-content: flex-end;
+  gap: 6px;
+  flex: 0 1 auto;
+  min-width: 0;
+  flex-shrink: 1;
+}
+
+.ud-icon-buttons {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: 0 0 auto;
+}
+
+.ud-nav-link {
+  white-space: nowrap;
   flex-shrink: 0;
+}
+
+.ud-wallet-btn {
+  max-width: 150px;
+  flex-shrink: 1 !important;
+  min-width: 0;
+}
+
+.ud-wallet-btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ud-nav-link {
@@ -2287,3 +2172,45 @@
     padding: 6px 12px;
     border-radius: var(--radius-sm);
   }
+
+  @media (max-width: 1600px) {
+  .ud-navbar-inner {
+    gap: 6px;
+  }
+
+  .ud-nav-actions {
+    gap: 4px;
+  }
+
+  .ud-nav-actions > .hide-laptop {
+    display: none !important;
+  }
+
+  .ud-nav-actions > .hide-mobile {
+    display: none !important;
+  }
+
+  .ud-user-avatar-btn .user-nav-details {
+    display: none !important;
+  }
+}
+
+@media (max-width: 1200px) {
+  .ud-navbar-inner {
+    gap: 4px;
+  }
+
+  .ud-navbar-search {
+    min-width: 100px;
+  }
+
+  .ud-icon-btn {
+    width: 34px;
+    height: 34px;
+  }
+
+  .ud-categories-btn {
+    padding-left: 6px;
+    padding-right: 6px;
+  }
+}
