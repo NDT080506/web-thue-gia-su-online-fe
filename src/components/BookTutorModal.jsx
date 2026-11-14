@@ -18,6 +18,7 @@ import {
   Phone,
   Mail,
   MapPin,
+  MessageCircle,
   Sparkles,
   Users
 } from 'lucide-react';
