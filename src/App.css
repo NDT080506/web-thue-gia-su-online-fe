@@ -31,37 +31,213 @@
 }
 
 .ud-navbar {
-  height: 72px;
+  width: 100%;
+  min-height: 72px;
   display: flex;
   align-items: center;
 }
 
-.ud-navbar-inner {
+/* Wider container only for the navbar so controls do not collide. */
+.container.ud-navbar-inner {
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 0 24px;
   display: flex;
   align-items: center;
   justify-content: flex-start;
-  gap: 12px;
-  width: 100%;
+  gap: 10px;
   min-width: 0;
 }
 
 .ud-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   flex: 0 0 auto;
   min-width: max-content;
+  font-family: 'Outfit', sans-serif;
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #1c1d1f;
+  letter-spacing: -0.03em;
+  white-space: nowrap;
+}
+
+.ud-logo-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #a435f0 0%, #5624d0 100%);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(164, 53, 240, 0.3);
+  flex: 0 0 auto;
+}
+
+.ud-logo-text span {
+  color: #a435f0;
 }
 
 .ud-categories-wrapper {
+  position: relative;
   flex: 0 0 auto;
 }
 
-.ud-navbar-search {
-  position: relative;
-  flex: 1 1 260px;
-  min-width: 120px;
-  max-width: 460px;
-  margin: 0 4px;
+.ud-categories-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 4px;
+  color: #1c1d1f;
+  font-size: 0.95rem;
+  font-weight: 500;
+  white-space: nowrap;
 }
 
+.ud-categories-btn:hover {
+  color: #a435f0;
+  background-color: var(--primary-light);
+}
+
+/* Categories dropdown must be removed from normal document flow. */
+.ud-categories-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  width: 280px;
+  max-width: min(280px, calc(100vw - 24px));
+  padding: 12px 0;
+  background-color: #ffffff;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  box-shadow: var(--shadow-lg);
+  z-index: 9999;
+}
+
+.ud-categories-dropdown::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  left: 0;
+  right: 0;
+  height: 8px;
+  background: transparent;
+}
+
+.ud-cat-header {
+  padding: 8px 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #64748b;
+}
+
+.ud-cat-list {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+}
+
+.ud-cat-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 10px 16px;
+  color: #1c1d1f;
+  text-decoration: none;
+}
+
+.ud-cat-item:hover {
+  background-color: #f6efff;
+  color: #a435f0;
+}
+
+.ud-cat-item .cat-icon {
+  flex-shrink: 0;
+}
+
+.ud-cat-item .cat-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+}
+
+.ud-cat-item .cat-name {
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.ud-cat-item .cat-count {
+  font-size: 0.76rem;
+  color: #64748b;
+}
+
+/* Search wrapper is the third direct child of .ud-navbar-inner in Navbar.jsx. */
+.ud-navbar-inner > div:nth-child(3),
+.ud-navbar-search {
+  position: relative !important;
+  flex: 1 1 300px !important;
+  min-width: 160px !important;
+  max-width: 460px !important;
+  margin: 0 4px !important;
+}
+
+.ud-search-form {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: none;
+  height: 46px;
+  padding: 0 16px;
+  background-color: #f7f9fa;
+  border: 1px solid #1c1d1f;
+  border-radius: var(--radius-full);
+  position: relative;
+  transition: var(--transition);
+}
+
+.ud-search-form.focused {
+  background-color: #ffffff;
+  border-color: #a435f0;
+  box-shadow: 0 0 0 2px rgba(164, 53, 240, 0.2);
+}
+
+.ud-search-icon {
+  flex: 0 0 auto;
+  margin-right: 12px;
+  color: #6a6f73;
+}
+
+.ud-search-form input {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  border: none;
+  outline: none;
+  background: transparent;
+  color: #1c1d1f;
+  font-size: 0.95rem;
+}
+
+.ud-search-clear {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  padding: 4px;
+  color: #6a6f73;
+}
+
+.ud-search-clear:hover {
+  color: #1c1d1f;
+}
+
+/* Navigation actions */
 .ud-nav-actions {
   display: flex;
   align-items: center;
@@ -69,7 +245,25 @@
   gap: 6px;
   flex: 0 1 auto;
   min-width: 0;
-  flex-shrink: 1;
+}
+
+.ud-nav-link {
+  padding: 6px 8px;
+  border-radius: 4px;
+  color: #2d2f31;
+  font-size: 0.92rem;
+  font-weight: 500;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.ud-nav-link:hover {
+  color: var(--primary);
+}
+
+.ud-tutor-cta {
+  color: var(--primary);
+  font-weight: 600;
 }
 
 .ud-icon-buttons {
@@ -79,56 +273,16 @@
   flex: 0 0 auto;
 }
 
-.ud-nav-link {
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.ud-wallet-btn {
-  max-width: 150px;
-  flex-shrink: 1 !important;
-  min-width: 0;
-}
-
-.ud-wallet-btn span {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.ud-nav-link {
-  font-size: 0.92rem;
-  font-weight: 500;
-  color: #2d2f31;
-  padding: 6px 8px;
-  border-radius: 4px;
-  white-space: nowrap;
-}
-
-.ud-nav-link:hover {
-  color: var(--primary);
-}
-
-.ud-tutor-cta {
-  font-weight: 600;
-  color: var(--primary);
-}
-
-.ud-icon-buttons {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
 .ud-icon-btn {
   position: relative;
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   color: #1c1d1f;
+  flex: 0 0 auto;
 }
 
 .ud-icon-btn:hover {
@@ -140,34 +294,60 @@
   position: absolute;
   top: 2px;
   right: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
   background-color: var(--primary);
   color: #ffffff;
   font-size: 0.7rem;
   font-weight: 700;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
+}
+
+.ud-wallet-btn {
   display: flex;
   align-items: center;
-  justify-content: center;
-  border: 2px solid #ffffff;
+  gap: 6px;
+  max-width: 150px;
+  min-width: 0;
+  padding: 5px 10px;
+  border: 1px solid #bfdbfe;
+  border-radius: 20px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.82rem;
+  font-weight: 700;
+  white-space: nowrap;
+  flex: 0 1 auto;
+}
+
+.ud-wallet-btn span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .ud-auth-btns {
   display: flex;
   align-items: center;
   gap: 8px;
+  flex: 0 0 auto;
 }
 
 .ud-globe-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 40px;
   height: 40px;
   border: 1px solid #1c1d1f;
   border-radius: 4px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   color: #1c1d1f;
+  flex: 0 0 auto;
 }
 
 .ud-globe-btn:hover {
@@ -2173,21 +2353,33 @@
     border-radius: var(--radius-sm);
   }
 
-  @media (max-width: 1600px) {
-  .ud-navbar-inner {
-    gap: 6px;
+/* =============================================
+   NAVBAR RESPONSIVE LAYOUT
+   Keep this block after the general responsive rules.
+============================================= */
+
+@media (max-width: 1800px) {
+  .container.ud-navbar-inner {
+    gap: 8px;
   }
 
-  .ud-nav-actions {
-    gap: 4px;
-  }
-
-  .ud-nav-actions > .hide-laptop {
+  /* Hide secondary navigation links; keep the main tutor/course links. */
+  .ud-nav-actions > a.hide-laptop {
     display: none !important;
   }
 
-  .ud-nav-actions > .hide-mobile {
+  /* The two tutor action buttons become compact icon buttons. */
+  .ud-nav-actions > button > span.hide-mobile {
     display: none !important;
+  }
+
+  .ud-nav-actions > button[title="Tạo gói dịch vụ môi giới hoặc khóa học online mới"],
+  .ud-nav-actions > button[title="Quản lý khóa học, gói môi giới và học viên"] {
+    width: 40px !important;
+    height: 40px !important;
+    padding: 0 !important;
+    justify-content: center !important;
+    flex: 0 0 40px;
   }
 
   .ud-user-avatar-btn .user-nav-details {
@@ -2195,22 +2387,106 @@
   }
 }
 
-@media (max-width: 1200px) {
-  .ud-navbar-inner {
-    gap: 4px;
-  }
-
-  .ud-navbar-search {
-    min-width: 100px;
-  }
-
-  .ud-icon-btn {
-    width: 34px;
-    height: 34px;
+@media (max-width: 1400px) {
+  .container.ud-navbar-inner {
+    gap: 6px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
 
   .ud-categories-btn {
-    padding-left: 6px;
-    padding-right: 6px;
+    padding-left: 7px;
+    padding-right: 7px;
+  }
+
+  .ud-icon-buttons {
+    gap: 2px;
+  }
+
+  .ud-icon-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .ud-wallet-btn {
+    max-width: 130px;
+  }
+
+  .ud-navbar-inner > div:nth-child(3),
+  .ud-navbar-search {
+    min-width: 120px !important;
   }
 }
+
+@media (max-width: 1100px) {
+  .ud-navbar {
+    height: auto;
+    min-height: 72px;
+  }
+
+  .container.ud-navbar-inner {
+    flex-wrap: wrap;
+    row-gap: 8px;
+    padding-top: 10px;
+    padding-bottom: 10px;
+  }
+
+  .ud-nav-actions > a {
+    display: none !important;
+  }
+
+  .ud-navbar-inner > div:nth-child(3),
+  .ud-navbar-search {
+    order: 5;
+    flex: 1 1 100% !important;
+    width: 100%;
+    max-width: none !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+  }
+
+  .ud-nav-actions {
+    margin-left: auto;
+  }
+}
+
+@media (max-width: 768px) {
+  .container.ud-navbar-inner {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .ud-navbar-inner > div:nth-child(3),
+  .ud-navbar-search {
+    order: 5;
+    flex-basis: 100% !important;
+  }
+
+  .ud-categories-btn {
+    padding: 8px 4px;
+    font-size: 0.88rem;
+  }
+
+  .ud-icon-btn {
+    width: 32px;
+    height: 32px;
+  }
+
+  .ud-wallet-btn {
+    max-width: 42px;
+    width: 42px;
+    height: 36px;
+    justify-content: center;
+    padding: 4px;
+  }
+
+  .ud-wallet-btn span {
+    display: none;
+  }
+
+  .ud-globe-btn {
+    width: 34px;
+    height: 34px;
+  }
+}
+
