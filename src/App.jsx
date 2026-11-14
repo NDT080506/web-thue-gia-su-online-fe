@@ -24,6 +24,7 @@ import AdminPortal from './components/AdminPortal';
 import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
+import CreatePackageModal from './components/CreatePackageModal';
 import { topTutors, featuredCourses, communityArticles } from './data/mockData';
 import {
   authApi,
@@ -39,7 +40,7 @@ import {
   parseJwtPayload
 } from './services/api';
 import { formatCourseFromBackend } from './utils/courseAdapter';
-import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck, PlusCircle } from 'lucide-react';
 import './App.css';
 
 function removeVietnameseTones(str) {
@@ -83,6 +84,8 @@ export default function App() {
   }, []);
 
   const [tutorApplicationModalOpen, setTutorApplicationModalOpen] = useState(false);
+  const [createPackageModalOpen, setCreatePackageModalOpen] = useState(false);
+  const [createPackageInitialTab, setCreatePackageInitialTab] = useState('package');
   const [notificationCount, setNotificationCount] = useState(0);
 
   // Wallet & Payment Checkout State
@@ -327,6 +330,29 @@ export default function App() {
 
     initData();
   }, []);
+
+  // Fetch latest courses from Backend
+  const fetchCourses = async () => {
+    try {
+      const realCourses = await courseApi.getCourses();
+      if (realCourses && realCourses.length > 0) {
+        const formatted = realCourses.map((c, i) => formatCourseFromBackend(c, i));
+        setCourses(formatted);
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy courses từ BE:', err);
+    }
+  };
+
+  // Open Create Package / Course Modal for Tutor
+  const handleOpenCreatePackage = (tab = 'package') => {
+    if (!currentUser) {
+      handleOpenAuth('login');
+      return;
+    }
+    setCreatePackageInitialTab(tab);
+    setCreatePackageModalOpen(true);
+  };
 
   // Handle Auth open
   const handleOpenAuth = (mode) => {
@@ -765,6 +791,7 @@ export default function App() {
         onSelectCourse={(course) => setSelectedCourse(course)}
         onSelectTutor={(tutor) => handleBookTutor(tutor)}
         onOpenTutorApplication={() => setTutorApplicationModalOpen(true)}
+        onOpenCreatePackage={handleOpenCreatePackage}
       />
 
       <main>
@@ -791,6 +818,8 @@ export default function App() {
           onToggleWishlist={handleToggleWishlist}
           searchKeyword={searchKeyword}
           onClearSearch={() => setSearchKeyword('')}
+          currentUser={currentUser}
+          onOpenCreateCourse={() => handleOpenCreatePackage('course')}
         />
 
         {/* 5. Featured 1-on-1 Tutors Section */}
@@ -806,9 +835,35 @@ export default function App() {
                   Đội ngũ thủ khoa, thạc sĩ và chuyên gia sư phạm hàng đầu đã được xác thực hồ sơ và bằng cấp nghiêm ngặt.
                 </p>
               </div>
-              <button className="ud-view-all-btn">
-                Xem tất cả gia sư <ArrowRight size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {currentUser?.role === 'TUTOR' && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCreatePackage('package')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
+                      color: '#fff',
+                      padding: '8px 16px',
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(126, 34, 206, 0.25)'
+                    }}
+                    title="Tạo gói dịch vụ môi giới / dạy kèm 1-1 mới"
+                  >
+                    <PlusCircle size={16} />
+                    <span>Tạo gói dịch vụ 1-1</span>
+                  </button>
+                )}
+                <button className="ud-view-all-btn">
+                  Xem tất cả gia sư <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="ud-tutors-grid">
@@ -893,6 +948,7 @@ export default function App() {
         onOpenChat={handleOpenChatWithStudent}
         onOpenCheckout={handleOpenCheckout}
         onWalletUpdated={() => loadUserWallet(currentUser)}
+        onOpenCreatePackage={() => handleOpenCreatePackage('package')}
       />
 
       <ChatModal
@@ -987,6 +1043,20 @@ export default function App() {
         onOpenAdmin={() => {
           setIsAdminView(true);
           window.location.hash = 'admin';
+        }}
+      />
+
+      <CreatePackageModal
+        isOpen={createPackageModalOpen}
+        onClose={() => setCreatePackageModalOpen(false)}
+        currentUser={currentUser}
+        initialTab={createPackageInitialTab}
+        onPackageCreated={() => {
+          loadUserNotifications(currentUser);
+        }}
+        onCourseCreated={() => {
+          fetchCourses();
+          loadUserNotifications(currentUser);
         }}
       />
     </div>

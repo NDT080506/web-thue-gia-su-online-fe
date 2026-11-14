@@ -16,7 +16,8 @@ import {
   MessageCircle,
   ShieldCheck,
   Wallet,
-  ArrowRight
+  ArrowRight,
+  PlusCircle
 } from 'lucide-react';
 import { categories } from '../data/mockData';
 
@@ -55,7 +56,8 @@ export default function Navbar({
   tutors = [],
   onSelectCourse = null,
   onSelectTutor = null,
-  onOpenTutorApplication = null
+  onOpenTutorApplication = null,
+  onOpenCreatePackage = null
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCategories, setShowCategories] = useState(false);
@@ -567,6 +569,35 @@ export default function Navbar({
                 </button>
               )}
 
+              {/* Tutor Create Package / Course Button - Only visible for TUTOR */}
+              {currentUser?.role === 'TUTOR' && (
+                <button
+                  onClick={() => {
+                    if (onOpenCreatePackage) onOpenCreatePackage();
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#f3e8ff',
+                    color: '#7e22ce',
+                    border: '1px solid #d8b4fe',
+                    borderRadius: 6,
+                    padding: '6px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    flexShrink: 0
+                  }}
+                  title="Tạo gói dịch vụ môi giới hoặc khóa học online mới"
+                >
+                  <PlusCircle size={15} />
+                  <span className="hide-mobile">Tạo gói / Khóa học</span>
+                </button>
+              )}
+
               {/* User Profile or Auth Buttons */}
               {currentUser ? (
                 <div
@@ -678,21 +709,32 @@ export default function Navbar({
                       </a>
 
                       {currentUser.role === 'TUTOR' ? (
-                        <button
-                          className="menu-item"
-                          onClick={() => { setShowUserMenu(false); if (onOpenBookings) onOpenBookings(); }}
-                          style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
-                        >
-                          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                            <GraduationCap size={16} color="#a435f0" />
-                            <span>Yêu cầu học viên đặt lịch</span>
-                          </div>
-                          {notificationCount > 0 && (
-                            <span style={{ background: '#a435f0', color: '#fff', fontSize: '0.75rem', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>
-                              {notificationCount} mới
-                            </span>
-                          )}
-                        </button>
+                        <>
+                          <button
+                            className="menu-item"
+                            onClick={() => { setShowUserMenu(false); if (onOpenBookings) onOpenBookings(); }}
+                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}
+                          >
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                              <GraduationCap size={16} color="#a435f0" />
+                              <span>Yêu cầu học viên đặt lịch</span>
+                            </div>
+                            {notificationCount > 0 && (
+                              <span style={{ background: '#a435f0', color: '#fff', fontSize: '0.75rem', padding: '2px 7px', borderRadius: 10, fontWeight: 700 }}>
+                                {notificationCount} mới
+                              </span>
+                            )}
+                          </button>
+
+                          <button
+                            className="menu-item"
+                            onClick={() => { setShowUserMenu(false); if (onOpenCreatePackage) onOpenCreatePackage(); }}
+                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: '#7e22ce', fontWeight: 600 }}
+                          >
+                            <PlusCircle size={16} color="#7e22ce" />
+                            <span>Tạo gói dịch vụ & Khóa học</span>
+                          </button>
+                        </>
                       ) : currentUser.role === 'STUDENT' ? (
                         <button
                           className="menu-item"
