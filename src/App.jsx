@@ -24,12 +24,14 @@ import AdminPortal from './components/AdminPortal';
 import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
+import CreatePackageModal from './components/CreatePackageModal';
 import { topTutors, featuredCourses, communityArticles } from './data/mockData';
 import {
   authApi,
   articleApi,
   courseApi,
   bookingApi,
+  brokeragePackageApi,
   cartApi,
   wishlistApi,
   conversationApi,
@@ -39,7 +41,7 @@ import {
   parseJwtPayload
 } from './services/api';
 import { formatCourseFromBackend } from './utils/courseAdapter';
-import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck, PlusCircle } from 'lucide-react';
 import './App.css';
 
 function removeVietnameseTones(str) {
@@ -64,6 +66,7 @@ export default function App() {
   const [isBackendOnline, setIsBackendOnline] = useState(false);
 
   const [courses, setCourses] = useState(featuredCourses);
+  const [tutors, setTutors] = useState(topTutors);
   const [articles, setArticles] = useState(communityArticles);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -83,6 +86,8 @@ export default function App() {
   }, []);
 
   const [tutorApplicationModalOpen, setTutorApplicationModalOpen] = useState(false);
+  const [createPackageModalOpen, setCreatePackageModalOpen] = useState(false);
+  const [createPackageInitialTab, setCreatePackageInitialTab] = useState('package');
   const [notificationCount, setNotificationCount] = useState(0);
 
   // Wallet & Payment Checkout State
@@ -137,13 +142,14 @@ export default function App() {
   // Lọc danh sách gia sư hiển thị theo từ khóa tìm kiếm (nếu có)
   const cleanSearchTerm = removeVietnameseTones(searchKeyword);
   const displayedTutors = cleanSearchTerm
-    ? topTutors.filter(t =>
+    ? tutors.filter(t =>
       removeVietnameseTones(t.name).includes(cleanSearchTerm) ||
       removeVietnameseTones(t.title).includes(cleanSearchTerm) ||
       removeVietnameseTones(t.degree).includes(cleanSearchTerm) ||
-      (t.subjects && t.subjects.some(s => removeVietnameseTones(s).includes(cleanSearchTerm)))
+      (t.subjects && t.subjects.some(s => removeVietnameseTones(s).includes(cleanSearchTerm))) ||
+      (t.packages && t.packages.some(p => removeVietnameseTones(p.name).includes(cleanSearchTerm)))
     )
-    : topTutors;
+    : tutors;
 
   // Lấy số lượng cuộc trò chuyện Messenger từ CSDL
   const loadConversationsCount = async (user) => {
@@ -159,12 +165,16 @@ export default function App() {
     }
   };
 
-  // Lấy danh sách khóa học mà học sinh hiện tại đã đăng ký
+  // Lấy danh sách khóa học mà học sinh hiện tại đã đăng ký (chỉ khóa đã kích hoạt ACTIVE hoặc COMPLETED)
   const loadUserEnrollments = async () => {
     try {
       const enrollments = await courseApi.getMyEnrollments();
       if (enrollments && Array.isArray(enrollments)) {
-        setEnrolledCourseIds(enrollments.map(e => e.courseId));
+        setEnrolledCourseIds(
+          enrollments
+            .filter((e) => e.status === 'ACTIVE' || e.status === 'COMPLETED')
+            .map((e) => e.courseId)
+        );
       }
     } catch (e) {
       console.log('Chưa thể lấy danh sách khóa học đã đăng ký:', e.message);
@@ -316,11 +326,72 @@ export default function App() {
         } catch (err) {
           console.warn('Lỗi lấy courses từ BE:', err);
         }
+
+        // Tải các gói dịch vụ thật của gia sư từ GET /brokerage-packages/tutor/:id
+        try {
+          const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
+          const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
+          if (pkgs && Array.isArray(pkgs) && pkgs.length > 0) {
+            setTutors((prev) =>
+              prev.map((t) => {
+                if (t.id === user001Id) {
+                  return { ...t, packages: pkgs };
+                }
+                return t;
+              })
+            );
+          }
+        } catch (err) {
+          console.warn('Lỗi lấy packages từ BE:', err);
+        }
       }
     }
 
     initData();
   }, []);
+
+  // Fetch latest brokerage packages for tutors from Backend
+  const loadTutorPackages = async () => {
+    try {
+      const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
+      const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
+      if (pkgs && Array.isArray(pkgs)) {
+        setTutors((prev) =>
+          prev.map((t) => {
+            if (t.id === user001Id) {
+              return { ...t, packages: pkgs };
+            }
+            return t;
+          })
+        );
+      }
+    } catch (e) {
+      console.warn('Lỗi tải gói dịch vụ gia sư:', e);
+    }
+  };
+
+  // Fetch latest courses from Backend
+  const fetchCourses = async () => {
+    try {
+      const realCourses = await courseApi.getCourses();
+      if (realCourses && realCourses.length > 0) {
+        const formatted = realCourses.map((c, i) => formatCourseFromBackend(c, i));
+        setCourses(formatted);
+      }
+    } catch (err) {
+      console.warn('Lỗi lấy courses từ BE:', err);
+    }
+  };
+
+  // Open Create Package / Course Modal for Tutor
+  const handleOpenCreatePackage = (tab = 'package') => {
+    if (!currentUser) {
+      handleOpenAuth('login');
+      return;
+    }
+    setCreatePackageInitialTab(tab);
+    setCreatePackageModalOpen(true);
+  };
 
   // Handle Auth open
   const handleOpenAuth = (mode) => {
@@ -754,11 +825,12 @@ export default function App() {
           window.location.hash = 'admin';
         }}
         courses={courses}
-        tutors={topTutors}
+        tutors={tutors}
         onSearch={handleSearch}
         onSelectCourse={(course) => setSelectedCourse(course)}
         onSelectTutor={(tutor) => handleBookTutor(tutor)}
         onOpenTutorApplication={() => setTutorApplicationModalOpen(true)}
+        onOpenCreatePackage={handleOpenCreatePackage}
       />
 
       <main>
@@ -785,6 +857,8 @@ export default function App() {
           onToggleWishlist={handleToggleWishlist}
           searchKeyword={searchKeyword}
           onClearSearch={() => setSearchKeyword('')}
+          currentUser={currentUser}
+          onOpenCreateCourse={() => handleOpenCreatePackage('course')}
         />
 
         {/* 5. Featured 1-on-1 Tutors Section */}
@@ -800,9 +874,35 @@ export default function App() {
                   Đội ngũ thủ khoa, thạc sĩ và chuyên gia sư phạm hàng đầu đã được xác thực hồ sơ và bằng cấp nghiêm ngặt.
                 </p>
               </div>
-              <button className="ud-view-all-btn">
-                Xem tất cả gia sư <ArrowRight size={16} />
-              </button>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+                {currentUser?.role === 'TUTOR' && (
+                  <button
+                    type="button"
+                    onClick={() => handleOpenCreatePackage('package')}
+                    style={{
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      gap: 6,
+                      background: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
+                      color: '#fff',
+                      padding: '8px 16px',
+                      borderRadius: 6,
+                      fontWeight: 700,
+                      fontSize: '0.85rem',
+                      border: 'none',
+                      cursor: 'pointer',
+                      boxShadow: '0 2px 6px rgba(126, 34, 206, 0.25)'
+                    }}
+                    title="Tạo gói dịch vụ môi giới / dạy kèm 1-1 mới"
+                  >
+                    <PlusCircle size={16} />
+                    <span>Tạo gói dịch vụ 1-1</span>
+                  </button>
+                )}
+                <button className="ud-view-all-btn">
+                  Xem tất cả gia sư <ArrowRight size={16} />
+                </button>
+              </div>
             </div>
 
             <div className="ud-tutors-grid">
@@ -887,6 +987,7 @@ export default function App() {
         onOpenChat={handleOpenChatWithStudent}
         onOpenCheckout={handleOpenCheckout}
         onWalletUpdated={() => loadUserWallet(currentUser)}
+        onOpenCreatePackage={() => handleOpenCreatePackage('package')}
       />
 
       <ChatModal
@@ -981,6 +1082,21 @@ export default function App() {
         onOpenAdmin={() => {
           setIsAdminView(true);
           window.location.hash = 'admin';
+        }}
+      />
+
+      <CreatePackageModal
+        isOpen={createPackageModalOpen}
+        onClose={() => setCreatePackageModalOpen(false)}
+        currentUser={currentUser}
+        initialTab={createPackageInitialTab}
+        onPackageCreated={() => {
+          loadTutorPackages();
+          loadUserNotifications(currentUser);
+        }}
+        onCourseCreated={() => {
+          fetchCourses();
+          loadUserNotifications(currentUser);
         }}
       />
     </div>

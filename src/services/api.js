@@ -1,4 +1,4 @@
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || '/api';
+const BASE_URL = import.meta.env.VITE_API_URL || '/api';
 
 /**
  * Helper giải mã JWT payload và trích xuất vai trò (Role)
@@ -209,6 +209,14 @@ export const courseApi = {
     return await request(`/courses/${id}`);
   },
 
+  // POST /courses (Gia sư / Admin tạo khóa học online mới)
+  createCourse: async (courseData) => {
+    return await request('/courses', {
+      method: 'POST',
+      body: JSON.stringify(courseData),
+    });
+  },
+
   // GET /lessons/course/:courseId (Lấy danh sách bài học của khóa học - Page<LessonResponse>)
   getLessons: async (courseId, page = 0, size = 100) => {
     const res = await request(withPagination(`/lessons/course/${courseId}`, page, size));
@@ -231,7 +239,28 @@ export const courseApi = {
 
   // GET /course-enrollments/course/:courseId (Lấy các lượt ghi danh của khóa học)
   getMyEnrollmentByCourse: async (courseId) => {
-    return await request(`/course-enrollments/course/${courseId}`);
+    try {
+      const enrollments = await courseApi.getMyEnrollments(0, 100);
+      return (enrollments || []).find((e) => e.courseId === courseId) || null;
+    } catch {
+      return null;
+    }
+  },
+
+  // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)
+  updateProgress: async (enrollmentId, progressPercent) => {
+    return await request(`/course-enrollments/${enrollmentId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
+  },
+
+  // PATCH /course-enrollments/course/:courseId/progress (Cập nhật tiến độ theo courseId)
+  updateProgressByCourse: async (courseId, progressPercent) => {
+    return await request(`/course-enrollments/course/${courseId}/progress`, {
+      method: 'PATCH',
+      body: JSON.stringify({ progressPercent }),
+    });
   },
 
   // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)
@@ -306,6 +335,22 @@ export const brokeragePackageApi = {
   // GET /brokerage-packages/:id
   getPackage: async (id) => {
     return await request(`/brokerage-packages/${id}`);
+  },
+
+  // POST /brokerage-packages (Gia sư / Admin tạo gói môi giới mới)
+  createPackage: async (packageData) => {
+    return await request('/brokerage-packages', {
+      method: 'POST',
+      body: JSON.stringify(packageData),
+    });
+  },
+
+  // PATCH /brokerage-packages/tutor/:id (Gia sư cập nhật gói môi giới của mình)
+  updatePackage: async (id, packageData) => {
+    return await request(`/brokerage-packages/tutor/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(packageData),
+    });
   },
 };
 

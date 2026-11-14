@@ -49,6 +49,13 @@ export default function BookTutorModal({
 
   const defaultBrokeragePackages = [
     {
+      id: '33333333-aaaa-bbbb-cccc-000000000001',
+      name: '[Gói Dạy Kèm 1-1] 3 Buổi Kèm Riêng & Ký Quỹ Escrow',
+      price: 450000,
+      platformFeePercent: 10,
+      description: 'Học phí được giữ trong ký quỹ. Khi học xong học viên xác nhận thì 90% học phí về ví gia sư, 10% phí sàn.'
+    },
+    {
       id: '33333333-aaaa-bbbb-cccc-000000000010',
       name: '[Gói Môi Giới] Phí Kết Nối Môi Giới Tiêu Chuẩn',
       price: 150000,
@@ -89,17 +96,12 @@ export default function BookTutorModal({
           console.warn('Lỗi kết nối hội thoại:', e.message);
         }
 
-        // 2. Lấy các gói dịch vụ môi giới của gia sư từ backend
+        // 2. Lấy các gói dịch vụ môi giới / dạy kèm của gia sư từ backend
         try {
           const pkgs = await brokeragePackageApi.getPackagesByTutor(tutor.id);
-          // Lọc chỉ lấy các gói môi giới kết nối (loại bỏ các gói trực tuyến cũ nếu có)
-          const validBrokeragePkgs = (pkgs || []).filter(
-            p => !p.name.includes('Trực Tuyến') && !p.name.includes('Meet')
-          );
-
-          if (validBrokeragePkgs.length > 0) {
-            setPackages(validBrokeragePkgs);
-            setSelectedPackage(validBrokeragePkgs[0]);
+          if (pkgs && pkgs.length > 0) {
+            setPackages(pkgs);
+            setSelectedPackage(pkgs[0]);
           } else {
             setPackages(defaultBrokeragePackages);
             setSelectedPackage(defaultBrokeragePackages[0]);

@@ -18,7 +18,8 @@ import {
   ShieldCheck,
   CreditCard,
   Check,
-  Sparkles
+  Sparkles,
+  PlusCircle
 } from 'lucide-react';
 import { bookingApi, disputeApi } from '../services/api';
 
@@ -28,7 +29,8 @@ export default function TutorBookingsModal({
   currentUser,
   onOpenChat,
   onOpenCheckout,
-  onWalletUpdated
+  onWalletUpdated,
+  onOpenCreatePackage
 }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -98,6 +100,27 @@ export default function TutorBookingsModal({
     }
   };
 
+  // Học viên xác nhận hoàn thành & giải ngân ký quỹ cho gia sư
+  const handleCompleteBooking = async (bookingId) => {
+    if (!window.confirm('Bạn có chắc chắn đã hoàn thành buổi học và muốn GIẢI NGÂN học phí cho gia sư?')) {
+      return;
+    }
+
+    setCompletingId(bookingId);
+    setErrorMsg('');
+    setSuccessMsg('');
+    try {
+      await bookingApi.completeBooking(bookingId);
+      setSuccessMsg('🎉 Đã xác nhận hoàn thành! Học phí đã được giải ngân về ví gia sư thành công.');
+      await fetchBookings();
+      if (onWalletUpdated) onWalletUpdated();
+    } catch (err) {
+      alert('Không thể hoàn thành đơn kết nối: ' + (err.data?.message || err.message));
+    } finally {
+      setCompletingId(null);
+    }
+  };
+
   // Xóa đơn đã hủy khỏi giao diện hiển thị
   const handleDeleteFromView = (bookingId) => {
     setBookings(prev => prev.filter(b => b.id !== bookingId));
@@ -144,8 +167,8 @@ export default function TutorBookingsModal({
         </button>
 
         {/* Modal Header */}
-        <div className="detail-modal-hero" style={{ padding: '24px 32px' }}>
-          <div className="detail-hero-left">
+        <div className="detail-modal-hero" style={{ padding: '24px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 16 }}>
+          <div className="detail-hero-left" style={{ flex: 1, minWidth: 260 }}>
             <span className="badge badge-bestseller">
               {isTutor ? 'Trung tâm Quản lý Môi giới' : 'Dịch vụ Môi giới Gia sư'}
             </span>
@@ -160,6 +183,29 @@ export default function TutorBookingsModal({
                 : `Theo dõi trạng thái thanh toán phí môi giới và thông tin liên hệ gia sư sau khi hoàn tất.`}
             </p>
           </div>
+
+          {isTutor && onOpenCreatePackage && (
+            <button
+              onClick={onOpenCreatePackage}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 8,
+                padding: '10px 18px',
+                borderRadius: 8,
+                background: '#fff',
+                color: '#7e22ce',
+                border: '2px solid #7e22ce',
+                fontWeight: 700,
+                fontSize: '0.88rem',
+                cursor: 'pointer',
+                boxShadow: '0 2px 8px rgba(126, 34, 206, 0.15)',
+                transition: 'all 0.15s ease'
+              }}
+            >
+              <PlusCircle size={16} /> Tạo gói dịch vụ & Khóa học mới
+            </button>
+          )}
         </div>
 
         {/* Modal Content */}
@@ -429,6 +475,36 @@ export default function TutorBookingsModal({
                             title="Gửi khiếu nại nếu thông tin liên hệ gia sư không chính xác hoặc gia sư từ chối nhận dạy"
                           >
                             <Scale size={14} /> Khiếu nại
+                          </button>
+                        )}
+
+                        {/* Nút Xác nhận hoàn thành & Giải ngân cho Gia sư khi đã thanh toán */}
+                        {!isTutor && isPaid && (
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            style={{
+                              fontSize: '0.82rem',
+                              padding: '6px 14px',
+                              backgroundColor: '#16a34a',
+                              borderColor: '#16a34a',
+                              color: '#ffffff',
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: 6,
+                              fontWeight: 600,
+                              boxShadow: '0 1px 3px rgba(22, 163, 74, 0.3)'
+                            }}
+                            disabled={completingId === booking.id}
+                            onClick={() => handleCompleteBooking(booking.id)}
+                            title="Xác nhận buổi học/dịch vụ hoàn tất để giải ngân tiền cho gia sư"
+                          >
+                            {completingId === booking.id ? (
+                              <Loader2 size={14} className="animate-spin" />
+                            ) : (
+                              <CheckCircle2 size={14} />
+                            )}
+                            Xác nhận hoàn thành & Giải ngân
                           </button>
                         )}
 

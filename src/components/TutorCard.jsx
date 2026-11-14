@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, CheckCircle, Calendar, MessageCircle, Award, Users } from 'lucide-react';
+import { Star, CheckCircle, Calendar, MessageCircle, Award, Users, Package } from 'lucide-react';
 
 export default function TutorCard({ tutor, onBookTutor, onChatTutor }) {
   const formatVND = (amount) => {
@@ -48,6 +48,51 @@ export default function TutorCard({ tutor, onBookTutor, onChatTutor }) {
             <span key={i} className="subject-pill">{sub}</span>
           ))}
         </div>
+
+        {/* Các gói dịch vụ / khóa kèm của gia sư */}
+        {tutor.packages && tutor.packages.length > 0 && (
+          <div style={{ marginTop: 12, background: '#faf5ff', border: '1px solid #e9d5ff', borderRadius: 8, padding: '10px 12px' }}>
+            <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#7e22ce', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 6 }}>
+              <Package size={14} /> Gói dịch vụ đã mở ({tutor.packages.length}):
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+              {tutor.packages.slice(0, 3).map((pkg, idx) => (
+                <div
+                  key={pkg.id || idx}
+                  onClick={() => onBookTutor && onBookTutor(tutor)}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    background: '#fff',
+                    border: '1px solid #d8b4fe',
+                    borderRadius: 6,
+                    padding: '5px 9px',
+                    fontSize: '0.78rem',
+                    cursor: 'pointer',
+                    transition: 'all 0.15s ease'
+                  }}
+                  title="Bấm để đăng ký gói này"
+                >
+                  <span style={{ fontWeight: 600, color: '#4c1d95', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '65%' }}>
+                    ⚡ {pkg.name}
+                  </span>
+                  <strong style={{ color: '#7e22ce', fontSize: '0.82rem' }}>
+                    {formatVND(pkg.price)}
+                  </strong>
+                </div>
+              ))}
+              {tutor.packages.length > 3 && (
+                <span
+                  onClick={() => onBookTutor && onBookTutor(tutor)}
+                  style={{ fontSize: '0.75rem', color: '#9333ea', fontWeight: 600, cursor: 'pointer', textAlign: 'right', marginTop: 2 }}
+                >
+                  +{tutor.packages.length - 3} gói khác (Bấm để xem)...
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="ud-tutor-footer">
