@@ -50,19 +50,22 @@ export default function TutorBookingsModal({
 
   const fetchBookings = async () => {
     if (!currentUser) return;
+
     setLoading(true);
     setErrorMsg('');
+
     try {
-      if (currentUser.role === 'TUTOR') {
-        setBookings([]);
-        setErrorMsg('Backend hiện chưa cung cấp API lấy danh sách booking theo gia sư.');
-      } else {
-        const res = await bookingApi.getMyBookings();
-        setBookings(res || []);
-      }
+      const res = currentUser.role === 'TUTOR'
+        ? await bookingApi.getTutorBookings()
+        : await bookingApi.getMyBookings();
+
+      setBookings(res || []);
     } catch (err) {
       console.warn('Lỗi lấy danh sách booking:', err);
-      setErrorMsg('Không thể tải danh sách đơn kết nối gia sư: ' + (err.data?.message || err.message));
+      setErrorMsg(
+        'Không thể tải danh sách đơn kết nối gia sư: ' +
+        (err.data?.message || err.message)
+      );
     } finally {
       setLoading(false);
     }

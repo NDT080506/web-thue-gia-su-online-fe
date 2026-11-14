@@ -226,7 +226,7 @@ export const courseApi = {
   enrollCourse: async (courseId) => {
     return await request('/course-enrollments', {
       method: 'POST',
-      body: JSON.stringify({ courseId }),f
+      body: JSON.stringify({ courseId }),
     });
   },
 
@@ -370,8 +370,11 @@ export const bookingApi = {
   },
 
   // GET /bookings/tutor (Lấy các đơn học viên đặt lịch với gia sư hiện tại)
-  getTutorBookings: async () => {
-    return await request('/bookings/tutor');
+  getTutorBookings: async (page = 0, size = 100) => {
+    const res = await request(
+      withPagination('/bookings/tutor', page, size)
+    );
+    return extractPageContent(res);
   },
 
   // PATCH /bookings/:id/cancel
