@@ -703,6 +703,12 @@ export default function App() {
       handleOpenAuth('login');
       return;
     }
+
+    if (currentUser.role !== 'STUDENT') {
+      alert('Chỉ học viên mới có thể đặt lịch gia sư.');
+      return;
+    }
+
     setSelectedTutorForBooking(tutor);
   };
 
@@ -712,8 +718,15 @@ export default function App() {
       handleOpenAuth('login');
       return;
     }
+
+    if (currentUser.role !== 'STUDENT') {
+      alert('Chỉ học viên mới có thể bắt đầu cuộc trò chuyện với gia sư.');
+      return;
+    }
+
     setChatTutor(tutor);
     setChatTargetStudent(null);
+    setChatTargetConversation(null);
     setChatModalOpen(true);
   };
 

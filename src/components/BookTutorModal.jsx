@@ -58,6 +58,14 @@ export default function BookTutorModal({
 
     if (!currentUser) return;
 
+    if (currentUser.role !== 'STUDENT') {
+      setConversation(null);
+      setPackages([]);
+      setSelectedPackage(null);
+      setErrorMsg('Chỉ học viên mới có thể đặt lịch gia sư.');
+      return;
+    } 
+
     setAgreedTerms(false);
 
     async function loadData() {
