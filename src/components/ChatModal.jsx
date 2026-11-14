@@ -33,8 +33,8 @@ export default function ChatModal({
 
   // Đối tượng đang trò chuyện cùng
   const partnerName = tutor 
-    ? tutor.name 
-    : (targetStudent?.displayName || (targetConversation ? (currentUser?.role === 'STUDENT' ? (targetConversation.tutorName === 'user001' ? 'Gia sư user001 (ThS. Đặng Thị Bích Thủy)' : targetConversation.tutorName) : targetConversation.studentName) : 'Người dùng'));
+    ? (tutor.name || tutor.displayName) 
+    : (targetStudent?.displayName || (targetConversation ? (currentUser?.role === 'STUDENT' ? (targetConversation.tutorName || 'Gia sư 1-1') : (targetConversation.studentName || 'Học viên')) : 'Người dùng'));
   const partnerRole = tutor 
     ? 'Gia sư 1-1' 
     : (currentUser?.role === 'STUDENT' ? 'Gia sư 1-1' : 'Học viên');

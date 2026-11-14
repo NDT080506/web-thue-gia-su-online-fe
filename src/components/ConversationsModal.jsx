@@ -96,6 +96,7 @@ export default function ConversationsModal({
     const isStudent = currentUser?.role === 'STUDENT';
 
     if (isStudent) {
+<<<<<<< HEAD
       const defaultAvatar =
         'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80';
 
@@ -105,6 +106,22 @@ export default function ConversationsModal({
         avatar: conv.tutorAvatar || defaultAvatar,
         title: conv.tutorTitle || '',
         degree: conv.tutorDegree || '',
+=======
+      const matchedTutor = topTutors.find(t => t.id === conv.tutorId);
+      return {
+        name: matchedTutor?.name || conv.tutorName || 'Gia sư 1-1',
+        role: 'Gia sư chuyên nghiệp',
+        avatar: matchedTutor?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
+        tutorObject: matchedTutor || {
+          id: conv.tutorId,
+          name: conv.tutorName,
+          title: 'Gia sư 1-1 chuyên môn',
+          degree: 'ThS. Toán học - Đại học Sư Phạm',
+          avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
+          rating: 5.0,
+          reviews: 142
+        }
+>>>>>>> bae4139ad722f60d9b945e953619da02ef987895
       };
 
       return {

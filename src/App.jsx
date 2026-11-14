@@ -32,6 +32,7 @@ import {
   courseApi,
   bookingApi,
   brokeragePackageApi,
+  tutorApi,
   cartApi,
   wishlistApi,
   conversationApi,
@@ -338,47 +339,124 @@ export default function App() {
           console.warn('Lỗi lấy courses từ BE:', err);
         }
 
-        // Tải các gói dịch vụ thật của gia sư từ GET /brokerage-packages/tutor/:id
-        try {
-          const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
-          const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
-          if (pkgs && Array.isArray(pkgs) && pkgs.length > 0) {
-            setTutors((prev) =>
-              prev.map((t) => {
-                if (t.id === user001Id) {
-                  return { ...t, packages: pkgs };
-                }
-                return t;
-              })
-            );
-          }
-        } catch (err) {
-          console.warn('Lỗi lấy packages từ BE:', err);
-        }
+        // Đồng bộ danh sách gia sư và tất cả gói dịch vụ thật từ Backend
+        await fetchTutorsAndPackages(savedUser);
       }
     }
 
     initData();
   }, []);
 
-  // Fetch latest brokerage packages for tutors from Backend
-  const loadTutorPackages = async () => {
+  // Đồng bộ danh sách gia sư và các gói dịch vụ trực tuyến từ Backend (hoàn toàn linh hoạt theo bất kỳ gia sư nào)
+  const fetchTutorsAndPackages = async (activeUser = currentUser) => {
     try {
-      const user001Id = '63d91ca1-d606-4d51-849c-c90749a7bd5c';
-      const pkgs = await brokeragePackageApi.getPackagesByTutor(user001Id);
-      if (pkgs && Array.isArray(pkgs)) {
-        setTutors((prev) =>
-          prev.map((t) => {
-            if (t.id === user001Id) {
-              return { ...t, packages: pkgs };
-            }
-            return t;
-          })
-        );
+      // 1. Lấy danh sách gia sư thật từ Backend (GET /users/tutors)
+      let realTutors = [];
+      try {
+        const resTutors = await tutorApi.getTutors();
+        if (Array.isArray(resTutors) && resTutors.length > 0) {
+          realTutors = resTutors;
+        }
+      } catch (err) {
+        console.warn('Lỗi lấy danh sách gia sư từ BE:', err);
       }
+
+      // 2. Lấy tất cả các gói dịch vụ active từ Backend (GET /brokerage-packages)
+      let allPkgs = [];
+      try {
+        const resPkgs = await brokeragePackageApi.getAllActivePackages();
+        if (Array.isArray(resPkgs)) {
+          allPkgs = resPkgs;
+        }
+      } catch (err) {
+        console.warn('Lỗi lấy gói dịch vụ từ BE:', err);
+      }
+
+      // 3. Chuẩn hóa và map danh sách gia sư
+      setTutors((prev) => {
+        const baseTutors = prev && prev.length > 0 ? prev : topTutors;
+        const mapById = new Map();
+
+        // Đưa các template gia sư có sẵn vào map
+        baseTutors.forEach((t) => mapById.set(t.id, { ...t }));
+
+        // Cập nhật hoặc thêm mới các gia sư thật từ Database
+        realTutors.forEach((rt, idx) => {
+          const pkgsForThisTutor = allPkgs.filter((p) => p.tutorId === rt.id);
+          const existing = mapById.get(rt.id);
+
+          if (existing) {
+            mapById.set(rt.id, {
+              ...existing,
+              name: rt.displayName || existing.name,
+              email: rt.email,
+              avatar: rt.avatarUrl || existing.avatar,
+              packages: pkgsForThisTutor
+            });
+          } else {
+            mapById.set(rt.id, {
+              id: rt.id,
+              name: rt.displayName || `Gia sư ${rt.displayName || idx + 1}`,
+              title: 'Gia sư chuyên môn cao EduTutor',
+              degree: 'Hồ sơ & bằng cấp đã qua kiểm định',
+              experience: 'Gia sư tận tâm 1-1',
+              avatar: rt.avatarUrl || `https://images.unsplash.com/photo-${1573497019940 + (idx % 5)}?auto=format&fit=crop&w=250&q=80`,
+              rating: 5.0,
+              reviews: 0,
+              students: 0,
+              hourlyRate: pkgsForThisTutor[0]?.price || 250000,
+              subjects: ['Toán 10-12', 'Tiếng Anh', 'Lập trình', 'Khoa học'],
+              isVerified: true,
+              bio: `Gia sư ${rt.displayName}. Nhận dạy kèm 1-1 và hướng dẫn lộ trình học tập hiệu quả.`,
+              packages: pkgsForThisTutor
+            });
+          }
+        });
+
+        // Nếu người dùng hiện tại là TUTOR, bảo đảm luôn có mặt trong danh sách gia sư
+        if (activeUser && activeUser.role === 'TUTOR' && activeUser.id) {
+          const myPkgs = allPkgs.filter((p) => p.tutorId === activeUser.id);
+          const existing = mapById.get(activeUser.id);
+          if (existing) {
+            existing.packages = myPkgs;
+            mapById.set(activeUser.id, existing);
+          } else {
+            mapById.set(activeUser.id, {
+              id: activeUser.id,
+              name: activeUser.displayName || 'Gia sư (Bạn)',
+              title: 'Gia sư chuyên môn 1-1',
+              degree: 'Tài khoản gia sư đã kích hoạt',
+              experience: 'Gia sư EduTutor',
+              avatar: activeUser.avatarUrl || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
+              rating: 5.0,
+              reviews: 0,
+              students: 0,
+              hourlyRate: myPkgs[0]?.price || 250000,
+              subjects: ['Dạy kèm 1-1', 'Luyện thi'],
+              isVerified: true,
+              bio: 'Tài khoản gia sư đang đăng nhập. Sẵn sàng kết nối và nhận lớp học.',
+              packages: myPkgs
+            });
+          }
+        }
+
+        // Đồng bộ gói dịch vụ tương ứng cho từng gia sư
+        return Array.from(mapById.values()).map((t) => {
+          const matchedPkgs = allPkgs.filter((p) => p.tutorId === t.id);
+          if (matchedPkgs.length > 0) {
+            return { ...t, packages: matchedPkgs };
+          }
+          return t;
+        });
+      });
     } catch (e) {
-      console.warn('Lỗi tải gói dịch vụ gia sư:', e);
+      console.warn('Lỗi đồng bộ gia sư và gói dịch vụ:', e);
     }
+  };
+
+  // Tải lại các gói dịch vụ của tất cả gia sư
+  const loadTutorPackages = async () => {
+    await fetchTutorsAndPackages(currentUser);
   };
 
   // Fetch latest courses from Backend
@@ -421,6 +499,7 @@ export default function App() {
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
     await loadConversationsCount(user);
+    await fetchTutorsAndPackages(user);
   };
 
   const handleLogout = async () => {
@@ -625,8 +704,8 @@ export default function App() {
         return true;
       }
     } catch (err) {
-      const errMsg = err?.data?.message || err.message;
-      if (errMsg.includes('already enrolled') || errMsg.includes('đã đăng ký') || err.status === 400) {
+      const errMsg = String(err?.data?.message || err?.message || err || 'Có lỗi xảy ra');
+      if (errMsg.includes('already enrolled') || errMsg.includes('đã đăng ký') || err?.status === 400) {
         // Thử mở checkout nếu có pending
         try {
           const myEnrolls = await courseApi.getMyEnrollments();
@@ -643,6 +722,11 @@ export default function App() {
         } catch (e) { }
         setEnrolledCourseIds(prev => [...prev, course.id]);
         alert(`Bạn đã ghi danh khóa học này trước đó rồi! Toàn bộ video bài giảng đã sẵn sàng để bạn học.`);
+        return true;
+      }
+      if (errMsg.includes('Course not found') || errMsg.includes('COURSE_NOT_FOUND')) {
+        setEnrolledCourseIds(prev => [...prev, course.id]);
+        alert(`[Khóa học mẫu] Đã mở khóa video khóa học demo "${course.title}" để bạn trải nghiệm!`);
         return true;
       }
       alert(`Đăng ký khóa học không thành công: ${errMsg}`);

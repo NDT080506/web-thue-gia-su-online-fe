@@ -165,8 +165,8 @@ export const featuredCourses = [
 export const topTutors = [
   {
     id: '63d91ca1-d606-4d51-849c-c90749a7bd5c',
-    name: 'Gia sư user001 (ThS. Đặng Thị Bích Thủy)',
-    title: 'Gia sư Toán & Luyện thi Chuyên (Tài khoản user001)',
+    name: 'ThS. Đặng Thị Bích Thủy',
+    title: 'Gia sư Toán & Luyện thi Chuyên',
     degree: 'Sinh viên năm cuối ĐH Sư Phạm - ThS. Toán học',
     experience: '8 năm kinh nghiệm',
     avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=250&q=80',
