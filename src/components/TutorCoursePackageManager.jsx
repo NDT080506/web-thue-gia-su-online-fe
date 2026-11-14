@@ -591,22 +591,23 @@ export default function TutorCoursePackageManager({
                 />
               </label>
 
-              <label>
-                <span>Phí nền tảng (%)</span>
-
-                <input
-                  type="number"
-                  min="0"
-                  max="100"
-                  required
-                  value={form.platformFeePercent}
-                  onChange={(e) => setForm(prev => ({
-                    ...prev,
-                    platformFeePercent: e.target.value
-                  }))}
-                  style={inputStyle}
-                />
-              </label>
+              {editing.type === 'package' && (
+                <label>
+                  <span>Phí nền tảng (%)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    max="100"
+                    required
+                    value={form.platformFeePercent}
+                    onChange={(e) => setForm(prev => ({
+                      ...prev,
+                      platformFeePercent: e.target.value
+                    }))}
+                    style={inputStyle}
+                  />
+                </label>
+              )}
             </div>
 
             {editing.type === 'course' && (

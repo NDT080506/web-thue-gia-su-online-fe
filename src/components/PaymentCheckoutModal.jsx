@@ -229,9 +229,33 @@ export default function PaymentCheckoutModal({
                   <span style={{ color: '#64748b' }}>Số tiền đã thanh toán:</span>
                   <strong style={{ color: '#a435f0' }}>{formatVND(paymentSuccess.amount || totalAmount)}</strong>
                 </div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                  <span style={{ color: '#64748b' }}>Số dư ví còn lại:</span>
-                  <strong>{formatVND(paymentSuccess.availableBalance ?? wallet?.availableBalance)}</strong>
+                {type === 'course' && (
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    marginBottom: 8
+                  }}>
+                    <span style={{ color: '#64748b' }}>
+                      Tiền đang ký quỹ:
+                    </span>
+
+                    <strong style={{ color: '#d97706' }}>
+                      {formatVND(paymentSuccess.holdingBalance)}
+                    </strong>
+                  </div>
+                )}
+
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between'
+                }}>
+                  <span style={{ color: '#64748b' }}>
+                    Số dư khả dụng còn lại:
+                  </span>
+
+                  <strong>
+                    {formatVND(paymentSuccess.availableBalance)}
+                  </strong>
                 </div>
               </div>
 
