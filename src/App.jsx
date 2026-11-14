@@ -25,6 +25,7 @@ import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
 import CreatePackageModal from './components/CreatePackageModal';
+import TutorCoursePackageManager from './components/TutorCoursePackageManager';
 import { topTutors, featuredCourses, communityArticles } from './data/mockData';
 import {
   authApi,
@@ -88,6 +89,7 @@ export default function App() {
 
   const [tutorApplicationModalOpen, setTutorApplicationModalOpen] = useState(false);
   const [createPackageModalOpen, setCreatePackageModalOpen] = useState(false);
+  const [tutorManagementOpen, setTutorManagementOpen] = useState(false);
   const [createPackageInitialTab, setCreatePackageInitialTab] = useState('package');
   const [notificationCount, setNotificationCount] = useState(0);
 
@@ -259,14 +261,20 @@ export default function App() {
   };
 
   // Xử lý sau khi thanh toán thành công
-  const handlePaymentSuccess = (result) => {
-    if (currentUser) {
-      loadUserWallet(currentUser);
-      loadUserNotifications(currentUser);
+  const handlePaymentSuccess = async (result) => {
+    if (!result || result.status !== 'SUCCESS') {
+      return;
     }
-    if (checkoutData.type === 'course' && checkoutData.item?.id) {
-      setEnrolledCourseIds(prev => [...prev, checkoutData.item.id]);
-      loadUserEnrollments(currentUser);
+
+    if (currentUser) {
+      await Promise.all([
+        loadUserWallet(currentUser),
+        loadUserNotifications(currentUser)
+      ]);
+    }
+
+    if (checkoutData.type === 'course') {
+      await loadUserEnrollments(currentUser);
     }
   };
 
@@ -581,6 +589,20 @@ export default function App() {
     }
     setCreatePackageInitialTab(tab);
     setCreatePackageModalOpen(true);
+  };
+
+  const handleOpenTutorManagement = () => {
+    if (!currentUser) {
+      handleOpenAuth('login');
+      return;
+    }
+
+    if (currentUser.role !== 'TUTOR') {
+      alert('Chức năng chỉ dành cho gia sư.');
+      return;
+    }
+
+    setTutorManagementOpen(true);
   };
 
   // Handle Auth open
@@ -1058,6 +1080,7 @@ export default function App() {
         onSelectTutor={(tutor) => handleBookTutor(tutor)}
         onOpenTutorApplication={() => setTutorApplicationModalOpen(true)}
         onOpenCreatePackage={handleOpenCreatePackage}
+        onOpenTutorManagement={handleOpenTutorManagement}
       />
 
       <main>
@@ -1326,6 +1349,18 @@ export default function App() {
           loadUserNotifications(currentUser);
         }}
       />
+
+      <TutorCoursePackageManager
+        isOpen={tutorManagementOpen}
+        onClose={() => setTutorManagementOpen(false)}
+        currentUser={currentUser}
+        onWalletUpdated={() => loadUserWallet(currentUser)}
+        onDataChanged={async () => {
+          await fetchCourses();
+          await loadTutorPackages();
+        }}
+      />
+
     </div>
   );
 }

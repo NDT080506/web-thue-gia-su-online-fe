@@ -224,18 +224,28 @@ export const articleApi = {
 
 /* ==================== 3. COURSES & ENROLLMENT ==================== */
 export const courseApi = {
-  // GET /courses (trả về Page<CourseResponse>)
+  // Lấy danh sách khóa học
   getCourses: async (page = 0, size = 100) => {
-    const res = await request(withPagination('/courses', page, size));
+    const res = await request(
+      withPagination('/courses', page, size)
+    );
     return extractPageContent(res);
   },
 
-  // GET /courses/:id
+  // Lấy khóa học theo ID
   getCourse: async (id) => {
     return await request(`/courses/${id}`);
   },
 
-  // POST /courses (Gia sư / Admin tạo khóa học online mới)
+  // Lấy khóa học của gia sư
+  getCoursesByTutor: async (tutorId, page = 0, size = 100) => {
+    const res = await request(
+      withPagination(`/courses/tutor/${tutorId}`, page, size)
+    );
+    return extractPageContent(res);
+  },
+
+  // Tạo khóa học
   createCourse: async (courseData) => {
     return await request('/courses', {
       method: 'POST',
@@ -243,13 +253,35 @@ export const courseApi = {
     });
   },
 
-  // GET /lessons/course/:courseId (Lấy danh sách bài học của khóa học - Page<LessonResponse>)
+  // Sửa khóa học
+  updateCourse: async (id, courseData) => {
+    return await request(`/courses/tutor/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify({
+        title: courseData.title,
+        price: Number(courseData.price),
+        platformFeePercent: Number(courseData.platformFeePercent),
+        active: Boolean(courseData.active),
+      }),
+    });
+  },
+
+  // Xóa khóa học
+  deleteCourse: async (id) => {
+    return await request(`/courses/${id}`, {
+      method: 'DELETE',
+    });
+  },
+
+  // Lấy danh sách bài học
   getLessons: async (courseId, page = 0, size = 100) => {
-    const res = await request(withPagination(`/lessons/course/${courseId}`, page, size));
+    const res = await request(
+      withPagination(`/lessons/course/${courseId}`, page, size)
+    );
     return extractPageContent(res);
   },
 
-  // POST /course-enrollments (Đăng ký ghi danh khóa học)
+  // Tạo ghi danh
   enrollCourse: async (courseId) => {
     return await request('/course-enrollments', {
       method: 'POST',
@@ -257,27 +289,60 @@ export const courseApi = {
     });
   },
 
-  // GET /course-enrollments/me (Lấy danh sách khóa học của học sinh hiện tại - Page<CourseEnrollmentResponse>)
+  // Lấy danh sách ghi danh của học viên hiện tại
   getMyEnrollments: async (page = 0, size = 100) => {
-    const res = await request(withPagination('/course-enrollments/me', page, size));
+    const res = await request(
+      withPagination('/course-enrollments/me', page, size)
+    );
     return extractPageContent(res);
   },
 
-  // GET /course-enrollments/course/:courseId (Lấy các lượt ghi danh của khóa học)
+  // Lấy ghi danh của học viên theo khóa học hiện tại
   getMyEnrollmentByCourse: async (courseId) => {
     try {
       const enrollments = await courseApi.getMyEnrollments(0, 100);
-      return (enrollments || []).find((e) => e.courseId === courseId) || null;
+
+      return enrollments.find(
+        (e) => e.courseId === courseId
+      ) || null;
     } catch {
       return null;
     }
   },
 
-  // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)
+  // Gia sư lấy danh sách học viên ghi danh khóa học
+  getEnrollmentsByCourse: async (courseId, page = 0, size = 100) => {
+    const res = await request(
+      withPagination(
+        `/course-enrollments/course/${courseId}`,
+        page,
+        size
+      )
+    );
+
+    return extractPageContent(res);
+  },
+
+  // Lấy thông tin một enrollment
+  getEnrollment: async (enrollmentId) => {
+    return await request(`/course-enrollments/${enrollmentId}`);
+  },
+
+  // Học viên hủy ghi danh
+  cancelEnrollment: async (enrollmentId) => {
+    return await request(
+      `/course-enrollments/${enrollmentId}/cancel`,
+      { method: 'PATCH' }
+    );
+  },
+
+  // Gia sư xác nhận hoàn thành khóa học
+  // Backend sẽ giải ngân tiền escrow tại đây
   completeEnrollment: async (enrollmentId) => {
-    return await request(`/course-enrollments/tutor/${enrollmentId}/complete`, {
-      method: 'PATCH',
-    });
+    return await request(
+      `/course-enrollments/tutor/${enrollmentId}/complete`,
+      { method: 'PATCH' }
+    );
   },
 };
 
@@ -336,26 +401,38 @@ export const messageApi = {
 
 /* ==================== 5. BROKERAGE PACKAGES ==================== */
 export const brokeragePackageApi = {
-  // GET /brokerage-packages (Lấy tất cả các gói dịch vụ active công khai)
+  // Lấy danh sách gói theo gia sư
+  getPackagesByTutor: async (tutorId, page = 0, size = 100) => {
+    const res = await request(
+      withPagination(
+        `/brokerage-packages/tutor/${tutorId}`,
+        page,
+        size
+      )
+    );
+
+    return extractPageContent(res);
+  },
+
+  // Lấy tất cả gói (chỉ Admin được phép)
   getAllActivePackages: async (page = 0, size = 100) => {
     const res = await request(
-      withPagination('/brokerage-packages/admin/get-all', page, size)
+      withPagination(
+        '/brokerage-packages/admin/get-all',
+        page,
+        size
+      )
     );
+
     return extractPageContent(res);
   },
 
-  // GET /brokerage-packages/tutor/:tutorId (trả về Page<BrokeragePackageResponse>)
-  getPackagesByTutor: async (tutorId, page = 0, size = 100) => {
-    const res = await request(withPagination(`/brokerage-packages/tutor/${tutorId}`, page, size));
-    return extractPageContent(res);
-  },
-
-  // GET /brokerage-packages/:id
+  // Lấy chi tiết gói
   getPackage: async (id) => {
     return await request(`/brokerage-packages/${id}`);
   },
 
-  // POST /brokerage-packages (Gia sư / Admin tạo gói môi giới mới)
+  // Tạo gói
   createPackage: async (packageData) => {
     return await request('/brokerage-packages', {
       method: 'POST',
@@ -363,11 +440,27 @@ export const brokeragePackageApi = {
     });
   },
 
-  // PATCH /brokerage-packages/tutor/:id (Gia sư cập nhật gói môi giới của mình)
-  updatePackage: async (id, packageData) => {
-    return await request(`/brokerage-packages/tutor/${id}`, {
+  // Sửa gói
+  updatePackage: async (id, packageData, role = 'TUTOR') => {
+    const endpoint = role === 'ADMIN'
+      ? `/brokerage-packages/admin/${id}`
+      : `/brokerage-packages/tutor/${id}`;
+
+    return await request(endpoint, {
       method: 'PATCH',
-      body: JSON.stringify(packageData),
+      body: JSON.stringify({
+        name: packageData.name,
+        price: Number(packageData.price),
+        platformFeePercent: Number(packageData.platformFeePercent),
+        active: Boolean(packageData.active),
+      }),
+    });
+  },
+
+  // Xóa gói
+  deletePackage: async (id) => {
+    return await request(`/brokerage-packages/${id}`, {
+      method: 'DELETE',
     });
   },
 };

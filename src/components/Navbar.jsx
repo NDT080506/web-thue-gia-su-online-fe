@@ -57,7 +57,8 @@ export default function Navbar({
   onSelectCourse = null,
   onSelectTutor = null,
   onOpenTutorApplication = null,
-  onOpenCreatePackage = null
+  onOpenCreatePackage = null,
+  onOpenTutorManagement = null
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCategories, setShowCategories] = useState(false);
@@ -597,6 +598,38 @@ export default function Navbar({
                   <span className="hide-mobile">Tạo gói / Khóa học</span>
                 </button>
               )}
+
+              {/* DÁN NÚT QUẢN LÝ NỘI DUNG VÀO ĐÂY */}
+              {currentUser?.role === 'TUTOR' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (onOpenTutorManagement) {
+                      onOpenTutorManagement();
+                    }
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: '#eff6ff',
+                    color: '#1d4ed8',
+                    border: '1px solid #bfdbfe',
+                    borderRadius: 6,
+                    padding: '6px 12px',
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    whiteSpace: 'nowrap'
+                  }}
+                  title="Quản lý khóa học, gói môi giới và học viên"
+                >
+                  <BookOpen size={15} />
+                  <span className="hide-mobile">
+                    Quản lý nội dung
+                  </span>
+                </button>
+              )}            
 
               {/* User Profile or Auth Buttons */}
               {currentUser ? (

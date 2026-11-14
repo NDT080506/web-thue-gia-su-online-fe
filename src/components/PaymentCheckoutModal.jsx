@@ -207,8 +207,8 @@ export default function PaymentCheckoutModal({
 
               <p style={{ color: '#6a6f73', fontSize: '0.95rem', maxWidth: 460, margin: '0 auto 20px', lineHeight: 1.5 }}>
                 {type === 'course'
-                  ? 'Khóa học của bạn đã được kích hoạt thành công! Toàn bộ video bài giảng quay sẵn chất lượng cao đã sẵn sàng để bạn học ngay.'
-                  : 'Đã thanh toán phí môi giới thành công! Thông tin liên hệ (SĐT, Zalo, Email) của Gia sư đã được mở khóa để hai bên chủ động trao đổi lịch học và học phí trực tiếp.'}
+                  ? 'Thanh toán thành công! Khóa học đã được kích hoạt. Tiền học phí đã chuyển vào tài khoản ký quỹ của hệ thống và sẽ được giải ngân cho gia sư sau khi gia sư xác nhận hoàn thành khóa học.'
+                  : 'Đã thanh toán phí môi giới thành công! Thông tin liên hệ gia sư đã được mở khóa.'}  
               </p>
 
               <div style={{
