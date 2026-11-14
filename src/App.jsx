@@ -21,6 +21,7 @@ import ConversationsModal from './components/ConversationsModal';
 import ArticlePostModal from './components/ArticlePostModal';
 import AdminDashboardModal from './components/AdminDashboardModal';
 import AdminPortal from './components/AdminPortal';
+import TutorPortal from './components/TutorPortal';
 import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
@@ -78,10 +79,14 @@ export default function App() {
   const [isAdminView, setIsAdminView] = useState(() => {
     return window.location.hash === '#admin';
   });
+  const [isTutorView, setIsTutorView] = useState(() => {
+    return window.location.hash === '#tutor';
+  });
 
   useEffect(() => {
     const handleHashChange = () => {
       setIsAdminView(window.location.hash === '#admin');
+      setIsTutorView(window.location.hash === '#tutor');
     };
     window.addEventListener('hashchange', handleHashChange);
     return () => window.removeEventListener('hashchange', handleHashChange);
@@ -360,6 +365,18 @@ export default function App() {
         setCurrentUser(null);
       }
 
+      if (savedUser) {
+        if (savedUser.role === 'ADMIN' && window.location.hash !== '#admin') {
+          window.location.hash = '#admin';
+          setIsAdminView(true);
+          setIsTutorView(false);
+        } else if (savedUser.role === 'TUTOR' && window.location.hash !== '#tutor') {
+          window.location.hash = '#tutor';
+          setIsTutorView(true);
+          setIsAdminView(false);
+        }
+      }
+
       if (online) {
         try {
           const realArticles = await articleApi.getArticles();
@@ -616,6 +633,15 @@ export default function App() {
     if (user?.role === 'ADMIN') {
       window.location.hash = '#admin';
       setIsAdminView(true);
+      setIsTutorView(false);
+    } else if (user?.role === 'TUTOR') {
+      window.location.hash = '#tutor';
+      setIsTutorView(true);
+      setIsAdminView(false);
+    } else {
+      window.location.hash = '';
+      setIsAdminView(false);
+      setIsTutorView(false);
     }
     await loadUserWallet(user);
     await loadUserEnrollments(user);
@@ -636,6 +662,9 @@ export default function App() {
       setConversationCount(0);
       setCartItems([]);
       setWishlistItems([]);
+      window.location.hash = '';
+      setIsAdminView(false);
+      setIsTutorView(false);
 
       alert('Đã đăng xuất thành công!');
     } catch (error) {
@@ -976,7 +1005,7 @@ export default function App() {
             </p>
           )}
 
-          <div style={{ display: 'flex', gap: 12, marginTop: 12 }}>
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
             <button
               onClick={() => {
                 if (currentUser) {
@@ -1013,6 +1042,154 @@ export default function App() {
               }}
             >
               Quay về trang chủ
+            </button>
+          </div>
+
+          <AuthModal
+            isOpen={authModalOpen}
+            onClose={() => setAuthModalOpen(false)}
+            initialMode={authMode}
+            onLoginSuccess={handleLoginSuccess}
+          />
+        </div>
+      );
+    }
+  }
+
+  // Tách riêng giao diện Tutor Workspace nếu đang ở chế độ Gia sư
+  if (isTutorView) {
+    if (currentUser?.role === 'TUTOR') {
+      return (
+        <ErrorBoundary>
+          <TutorPortal
+            currentUser={currentUser}
+            userWallet={userWallet}
+            onWalletUpdated={() => loadUserWallet(currentUser)}
+            onBackToClient={() => {
+              window.location.hash = '';
+              setIsTutorView(false);
+            }}
+            onLogout={handleLogout}
+            onOpenChat={(student) => {
+              handleOpenChatWithStudent(student);
+            }}
+            onOpenCreatePackage={() => {
+              setCreatePackageInitialTab('package');
+              setCreatePackageModalOpen(true);
+            }}
+          />
+
+          {/* Modal Nhắn tin với học viên khi gọi từ TutorPortal */}
+          <ChatModal
+            isOpen={chatModalOpen}
+            onClose={() => {
+              setChatModalOpen(false);
+              setChatTargetStudent(null);
+            }}
+            tutor={null}
+            targetStudent={chatTargetStudent}
+            targetConversation={chatTargetConversation}
+            currentUser={currentUser}
+          />
+
+          {/* Modal Tạo gói/khóa học nếu mở từ TutorPortal */}
+          <CreatePackageModal
+            isOpen={createPackageModalOpen}
+            onClose={() => setCreatePackageModalOpen(false)}
+            currentUser={currentUser}
+            initialTab={createPackageInitialTab}
+            onPackageCreated={() => {
+              loadTutorPackages();
+              loadUserNotifications(currentUser);
+            }}
+            onCourseCreated={async () => {
+              await fetchCourses();
+              loadUserNotifications(currentUser);
+            }}
+          />
+        </ErrorBoundary>
+      );
+    } else {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          background: 'linear-gradient(135deg, #1e1b4b 0%, #312e81 100%)',
+          color: '#fff',
+          flexDirection: 'column',
+          gap: 16,
+          padding: 24,
+          textAlign: 'center'
+        }}>
+          <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f5f3ff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <GraduationCap size={36} color="#7c3aed" />
+          </div>
+          <h2 style={{ margin: 0, fontSize: '1.6rem', fontWeight: 800 }}>Không Gian Làm Việc Dành Cho Gia Sư</h2>
+          {currentUser ? (
+            <p style={{ color: '#c4b5fd', margin: 0, maxWidth: 500, fontSize: '0.95rem' }}>
+              Bạn đang đăng nhập với tài khoản <strong>{currentUser.displayName || currentUser.email}</strong> (vai trò: {currentUser.role}). Bạn cần được cấp quyền <strong>TUTOR</strong> hoặc đăng ký ứng tuyển gia sư để truy cập khu vực này.
+            </p>
+          ) : (
+            <p style={{ color: '#cbd5e1', margin: 0, maxWidth: 460, fontSize: '0.95rem' }}>
+              Vui lòng đăng nhập bằng tài khoản Gia sư (TUTOR) hoặc đăng ký trở thành Gia sư để vào Bảng quản trị giảng dạy.
+            </p>
+          )}
+
+          <div style={{ display: 'flex', gap: 12, marginTop: 12, flexWrap: 'wrap', justifyContent: 'center' }}>
+            <button
+              onClick={() => {
+                if (currentUser) handleLogout();
+                setAuthMode('login');
+                setAuthModalOpen(true);
+              }}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 6,
+                fontWeight: 700,
+                background: '#7c3aed',
+                color: '#fff',
+                border: 'none',
+                cursor: 'pointer'
+              }}
+            >
+              {currentUser ? 'Đăng xuất & Đăng nhập Gia sư' : 'Đăng nhập tài khoản Gia sư'}
+            </button>
+            <button
+              onClick={() => {
+                window.location.hash = '';
+                setIsTutorView(false);
+                setTutorApplicationModalOpen(true);
+              }}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 6,
+                fontWeight: 600,
+                background: 'rgba(255,255,255,0.1)',
+                color: '#fff',
+                border: '1px solid rgba(255,255,255,0.3)',
+                cursor: 'pointer'
+              }}
+            >
+              Đăng ký trở thành Gia sư
+            </button>
+            <button
+              onClick={() => {
+                window.location.hash = '';
+                setIsTutorView(false);
+              }}
+              style={{
+                padding: '10px 22px',
+                borderRadius: 6,
+                fontWeight: 600,
+                background: 'transparent',
+                color: '#cbd5e1',
+                border: '1px solid #64748b',
+                cursor: 'pointer'
+              }}
+            >
+              Quay về trang chủ Học viên
             </button>
           </div>
 
@@ -1072,6 +1249,10 @@ export default function App() {
         onOpenAdmin={() => {
           setIsAdminView(true);
           window.location.hash = 'admin';
+        }}
+        onOpenTutorPortal={() => {
+          setIsTutorView(true);
+          window.location.hash = 'tutor';
         }}
         courses={courses}
         tutors={tutors}

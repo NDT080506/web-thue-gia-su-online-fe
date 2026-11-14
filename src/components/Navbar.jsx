@@ -50,6 +50,7 @@ export default function Navbar({
   onOpenWishlist,
   onOpenConversations,
   onOpenAdmin,
+  onOpenTutorPortal,
   userWallet,
   onOpenWallet,
   courses = [],
@@ -576,6 +577,36 @@ export default function Navbar({
                 </button>
               )}
 
+              {/* Tutor Workspace Portal Button - Only visible for TUTOR */}
+              {currentUser?.role === 'TUTOR' && (
+                <button
+                  onClick={() => {
+                    if (onOpenTutorPortal) onOpenTutorPortal();
+                  }}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 6,
+                    background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
+                    color: '#ffffff',
+                    border: 'none',
+                    borderRadius: 6,
+                    padding: '6px 14px',
+                    fontSize: '0.82rem',
+                    fontWeight: 700,
+                    cursor: 'pointer',
+                    transition: 'all 0.2s',
+                    whiteSpace: 'nowrap',
+                    boxShadow: '0 2px 8px rgba(124, 58, 237, 0.35)',
+                    flexShrink: 0
+                  }}
+                  title="Chuyển sang Giao diện Bảng điều khiển Quản lý Gia sư (Tutor Workspace)"
+                >
+                  <GraduationCap size={16} />
+                  <span className="hide-mobile">Giao diện Gia sư</span>
+                </button>
+              )}
+
               {/* Tutor Create Package / Course Button - Only visible for TUTOR */}
               {currentUser?.role === 'TUTOR' && (
                 <button
@@ -734,6 +765,21 @@ export default function Navbar({
                           >
                             <ShieldCheck size={16} color="#dc2626" />
                             <span>Bảng điều khiển Quản trị</span>
+                          </button>
+                          <div className="menu-divider"></div>
+                        </>
+                      )}
+
+                      {/* Tutor Workspace Entry */}
+                      {currentUser.role === 'TUTOR' && (
+                        <>
+                          <button
+                            className="menu-item"
+                            onClick={() => { setShowUserMenu(false); if (onOpenTutorPortal) onOpenTutorPortal(); }}
+                            style={{ width: '100%', textAlign: 'left', background: '#f5f3ff', border: '1px solid #ddd6fe', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: '#7c3aed', fontWeight: 700, marginBottom: 4 }}
+                          >
+                            <GraduationCap size={16} color="#7c3aed" />
+                            <span>Không gian làm việc Gia sư</span>
                           </button>
                           <div className="menu-divider"></div>
                         </>
