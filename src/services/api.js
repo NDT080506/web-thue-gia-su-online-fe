@@ -126,20 +126,24 @@ export const authApi = {
   // POST /auth/logout
   logout: async () => {
     const accessToken = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
 
-    if (!accessToken || !refreshToken) {
-      throw new Error('Thiếu access token hoặc refresh token');
+    if (!accessToken) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+      return;
     }
 
-    // Chỉ xóa token local khi Backend xác nhận logout thành công
-    await request('/auth/logout', {
-      method: 'POST',
-      body: JSON.stringify({ accessToken, refreshToken }),
-    });
-
-    localStorage.removeItem('token');
-    localStorage.removeItem('refreshToken');
+    try {
+      await request('/auth/logout', {
+        method: 'POST',
+        body: JSON.stringify({
+          token: accessToken
+        }),
+      });
+    } finally {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refreshToken');
+    }
   },
 
   getToken: () => localStorage.getItem('token'),
@@ -246,22 +250,6 @@ export const courseApi = {
     }
   },
 
-  // PATCH /course-enrollments/:id/progress (Cập nhật tiến độ theo enrollmentId)
-  updateProgress: async (enrollmentId, progressPercent) => {
-    return await request(`/course-enrollments/${enrollmentId}/progress`, {
-      method: 'PATCH',
-      body: JSON.stringify({ progressPercent }),
-    });
-  },
-
-  // PATCH /course-enrollments/course/:courseId/progress (Cập nhật tiến độ theo courseId)
-  updateProgressByCourse: async (courseId, progressPercent) => {
-    return await request(`/course-enrollments/course/${courseId}/progress`, {
-      method: 'PATCH',
-      body: JSON.stringify({ progressPercent }),
-    });
-  },
-
   // PATCH /course-enrollments/tutor/:enrollmentId/complete (Gia sư xác nhận hoàn tất khóa học)
   completeEnrollment: async (enrollmentId) => {
     return await request(`/course-enrollments/tutor/${enrollmentId}/complete`, {
@@ -327,7 +315,9 @@ export const messageApi = {
 export const brokeragePackageApi = {
   // GET /brokerage-packages (Lấy tất cả các gói dịch vụ active công khai)
   getAllActivePackages: async (page = 0, size = 100) => {
-    const res = await request(withPagination('/brokerage-packages', page, size));
+    const res = await request(
+      withPagination('/brokerage-packages/admin/get-all', page, size)
+    );
     return extractPageContent(res);
   },
 
@@ -490,25 +480,25 @@ export const adminApi = {
     });
   },
 
-  // GET /tutor-applications/admin (Lấy danh sách đơn đăng ký gia sư - Page<TutorApplicationResponse>)
   getTutorApplications: async (page = 0, size = 100) => {
-    const res = await request(withPagination('/tutor-applications/admin', page, size));
+    const res = await request(
+      withPagination('/tutor-applications/admin', page, size)
+    );
     return extractPageContent(res);
   },
 
-  // PATCH /tutor-applications/admin/:applicationId/approve (Duyệt đơn gia sư)
   approveTutorApplication: async (applicationId) => {
-    return await request(`/tutor-applications/admin/${applicationId}/approve`, {
-      method: 'PATCH',
-    });
+    return await request(
+      `/tutor-applications/admin/${applicationId}/approve`,
+      { method: 'PATCH' }
+    );
   },
 
-  // PATCH /tutor-applications/admin/:applicationId/reject (Từ chối đơn gia sư)
-  rejectTutorApplication: async (applicationId, adminNote = '') => {
-    return await request(`/tutor-applications/admin/${applicationId}/reject`, {
-      method: 'PATCH',
-      body: JSON.stringify({ adminNote }),
-    });
+  rejectTutorApplication: async (applicationId) => {
+    return await request(
+      `/tutor-applications/admin/${applicationId}/reject`,
+      { method: 'PATCH' }
+    );
   },
 
   // GET /brokerage-packages/admin/get-all (Lấy tất cả gói môi giới - Page<BrokeragePackageResponse>)
@@ -668,20 +658,22 @@ export const tutorApi = {
 };
 
 export const tutorApplicationApi = {
-  // POST /tutor-applications (Nộp đơn ứng tuyển gia sư)
   createApplication: async (data) => {
     return await request('/tutor-applications', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({
+        bio: data.bio,
+        subjectsCanTeach: data.subjectsCanTeach,
+        cvUrl: data.cvUrl,
+        testSubmission: data.testSubmission || null,
+      }),
     });
   },
 
-  // GET /tutor-applications (Lấy đơn ứng tuyển của tôi)
   getMyApplication: async () => {
     return await request('/tutor-applications');
   },
 
-  // DELETE /tutor-applications (Hủy đơn ứng tuyển của tôi)
   deleteMyApplication: async () => {
     return await request('/tutor-applications', {
       method: 'DELETE',
@@ -715,6 +707,124 @@ export const disputeApi = {
   cancelDispute: async (id) => {
     return await request(`/disputes/${id}/cancel`, {
       method: 'PATCH',
+    });
+  },
+};
+
+export const tutorProfileApi = {
+  getMyProfile: async () => {
+    return await request('/tutor-profiles');
+  },
+
+  updateMyProfile: async (data) => {
+    return await request('/tutor-profiles', {
+      method: 'PATCH',
+      body: JSON.stringify({
+        bio: data.bio,
+        subjectsCanTeach: data.subjectsCanTeach,
+      }),
+    });
+  },
+
+  getAllProfiles: async (page = 0, size = 100) => {
+    const res = await request(
+      withPagination('/tutor-profiles/admin', page, size)
+    );
+    return extractPageContent(res);
+  },
+};
+
+export const withdrawalApi = {
+  createWithdrawal: async (data) => {
+    return await request('/withdrawals', {
+      method: 'POST',
+      body: JSON.stringify({
+        amount: Number(data.amount),
+        bankName: data.bankName,
+        accountNumber: data.accountNumber,
+        accountHolder: data.accountHolder,
+      }),
+    });
+  },
+
+  getMyWithdrawals: async (page = 0, size = 100) => {
+    const res = await request(
+      withPagination('/withdrawals/me', page, size)
+    );
+    return extractPageContent(res);
+  },
+
+  getWithdrawal: async (id) => {
+    return await request(`/withdrawals/${id}`);
+  },
+};
+
+export const reviewApi = {
+  createReview: async (data) => {
+    return await request('/reviews', {
+      method: 'POST',
+      body: JSON.stringify({
+        bookingId: data.bookingId || null,
+        enrollmentId: data.enrollmentId || null,
+        rating: Number(data.rating),
+        comment: data.comment,
+      }),
+    });
+  },
+
+  getTutorReviews: async (page = 0, size = 100) => {
+    const res = await request(
+      withPagination('/reviews/tutor', page, size)
+    );
+    return extractPageContent(res);
+  },
+
+  updateReview: async (data) => {
+    return await request('/reviews', {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteReview: async () => {
+    return await request('/reviews', {
+      method: 'DELETE',
+    });
+  },
+};
+
+
+export const lessonApi = {
+  createLesson: async (courseId, data) => {
+    return await request(`/lessons/courses/${courseId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        title: data.title,
+        mediaUrl: data.mediaUrl || null,
+        meetingUrl: data.meetingUrl || null,
+        startsAt: data.startsAt || null,
+        lessonOrder: Number(data.lessonOrder),
+      }),
+    });
+  },
+
+  getLessons: async (courseId, page = 0, size = 100) => {
+    const res = await request(
+      withPagination(`/lessons/course/${courseId}`, page, size)
+    );
+    return extractPageContent(res);
+  },
+
+  updateLesson: async (id, data) => {
+    return await request(`/lessons/${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  },
+
+  deleteLesson: async (id) => {
+    return await request(`/lessons/${id}`, {
+      method: 'DELETE',
     });
   },
 };

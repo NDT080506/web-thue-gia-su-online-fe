@@ -99,19 +99,26 @@ export default function AdminDashboardModal({ isOpen, onClose, currentUser, onDe
 
   // Từ chối đơn gia sư
   const handleRejectApplication = async (appId) => {
-    const reason = window.prompt('Nhập lý do từ chối hồ sơ gia sư:', 'Hồ sơ chưa đáp ứng tiêu chuẩn chuyên môn');
-    if (reason === null) return;
+    if (!window.confirm('Bạn có chắc chắn muốn từ chối hồ sơ gia sư này?')) {
+      return;
+    }
 
     setProcessingId(appId);
+
     try {
-      await adminApi.rejectTutorApplication(appId, reason);
-      setNotification('Đã từ chối đơn gia sư.');
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: 'REJECTED', adminNote: reason } : a));
+      await adminApi.rejectTutorApplication(appId);
+
+      setNotification('Đã từ chối hồ sơ gia sư.');
+
+      const updatedApplications = await adminApi.getTutorApplications();
+      setApplications(updatedApplications || []);
     } catch (err) {
-      alert('Lỗi từ chối đơn: ' + (err.data?.message || err.message));
+      alert(
+        'Lỗi từ chối hồ sơ: ' +
+        (err.data?.message || err.message)
+      );
     } finally {
       setProcessingId(null);
-      setTimeout(() => setNotification(''), 3000);
     }
   };
 

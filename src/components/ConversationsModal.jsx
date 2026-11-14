@@ -96,56 +96,35 @@ export default function ConversationsModal({
     const isStudent = currentUser?.role === 'STUDENT';
 
     if (isStudent) {
-<<<<<<< HEAD
       const defaultAvatar =
         'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80';
 
-      const tutor = {
-        id: conv.tutorId,
+      return {
         name: conv.tutorName || 'Gia sư',
+        role: 'Gia sư chuyên nghiệp',
         avatar: conv.tutorAvatar || defaultAvatar,
-        title: conv.tutorTitle || '',
-        degree: conv.tutorDegree || '',
-=======
-      const matchedTutor = topTutors.find(t => t.id === conv.tutorId);
-      return {
-        name: matchedTutor?.name || conv.tutorName || 'Gia sư 1-1',
-        role: 'Gia sư chuyên nghiệp',
-        avatar: matchedTutor?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
-        tutorObject: matchedTutor || {
+        tutorObject: {
           id: conv.tutorId,
-          name: conv.tutorName,
-          title: 'Gia sư 1-1 chuyên môn',
-          degree: 'ThS. Toán học - Đại học Sư Phạm',
-          avatar: 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80',
-          rating: 5.0,
-          reviews: 142
-        }
->>>>>>> bae4139ad722f60d9b945e953619da02ef987895
-      };
-
-      return {
-        name: tutor.name,
-        role: 'Gia sư chuyên nghiệp',
-        avatar: tutor.avatar,
-        tutorObject: tutor
+          name: conv.tutorName || 'Gia sư',
+          displayName: conv.tutorName || 'Gia sư',
+          avatar: conv.tutorAvatar || defaultAvatar,
+          title: conv.tutorTitle || '',
+          degree: conv.tutorDegree || '',
+        },
       };
     }
 
-    const defaultAvatar =
-      'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-
-    const student = {
-      id: conv.studentId,
-      displayName: conv.studentName || 'Học viên',
-      avatar: conv.studentAvatar || defaultAvatar
-    };
-
     return {
-      name: student.displayName,
+      name: conv.studentName || 'Học viên',
       role: 'Học viên',
-      avatar: student.avatar,
-      studentObject: student
+      avatar:
+        conv.studentAvatar ||
+        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      studentObject: {
+        id: conv.studentId,
+        displayName: conv.studentName || 'Học viên',
+        avatar: conv.studentAvatar || '',
+      },
     };
   };
   // Format thời gian hiển thị tương đối

@@ -237,7 +237,7 @@ export default function TutorBookingsModal({
             <div style={{ background: '#f7f9fa', border: '1px solid #e4e8eb', borderRadius: 8, padding: '14px 18px' }}>
               <span style={{ fontSize: '0.82rem', color: '#6a6f73', fontWeight: 600 }}>CHỜ THANH TOÁN PHÍ MÔI GIỚI</span>
               <div style={{ fontSize: '1.6rem', fontWeight: 800, color: '#b4690e', marginTop: 4 }}>
-                {bookings.filter(b => b.status === 'PENDING_PAYMENT').length}
+                {bookings.filter(b => b.status === 'PENDING_CONFIRMATION').length}
               </div>
             </div>
 
@@ -271,7 +271,7 @@ export default function TutorBookingsModal({
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
               {bookings.map((booking) => {
                 const isPendingPayment = booking.status === 'PENDING_PAYMENT';
-                const isPaid = booking.status === 'PENDING_CONFIRMATION' || booking.status === 'CONFIRMED';
+                const isPaid = booking.status === 'PENDING_CONFIRMATION';
                 const isCompleted = booking.status === 'COMPLETED';
 
                 return (

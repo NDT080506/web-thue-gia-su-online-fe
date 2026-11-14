@@ -279,7 +279,7 @@ export default function TutorApplicationModal({
                           {existingApp.status === 'APPROVED'
                             ? 'Chúc mừng bạn! Hồ sơ đã được duyệt. Vui lòng đăng nhập lại để cập nhật quyền Gia sư.'
                             : existingApp.status === 'REJECTED'
-                              ? `Ghi chú từ Ban quản trị: ${existingApp.adminNote || 'Chưa đạt yêu cầu thẩm định chuyên môn.'}`
+                              ? 'Hồ sơ đã bị từ chối. Bạn có thể nộp lại hồ sơ mới.'
                               : 'Hồ sơ của bạn đã được gửi an toàn lên hệ thống và chỉ Admin mới có quyền xem để xét duyệt.'}
                         </p>
                       </div>

@@ -193,9 +193,12 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
 
     setProcessingId(appId);
     try {
-      await adminApi.rejectTutorApplication(appId, reason);
+      await adminApi.rejectTutorApplication(appId);
+
       showToast('Đã từ chối đơn gia sư.');
-      setApplications(prev => prev.map(a => a.id === appId ? { ...a, status: 'REJECTED', adminNote: reason } : a));
+
+      const updated = await adminApi.getTutorApplications();
+      setApplications(updated || []);
     } catch (err) {
       alert('Lỗi từ chối đơn: ' + (err.data?.message || err.message));
     } finally {
