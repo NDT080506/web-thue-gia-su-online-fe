@@ -141,17 +141,26 @@ export default function TutorBookingsModal({
       await disputeApi.createDispute({
         bookingId: selectedBookingForDispute.id,
         reason: disputeReason.trim(),
-        evidenceUrl: disputeEvidence.trim() || 'https://drive.google.com/file/evidence-sample.png'
+        evidenceUrl: disputeEvidence.trim() || null
       });
       setSuccessMsg('Đã gửi khiếu nại thành công! Vụ việc đang chờ Quản trị viên phân xử.');
       setDisputeModalOpen(false);
       fetchBookings();
     } catch (err) {
-      const msg = err.data?.message || err.message || '';
-      if (msg.includes('Payment') || msg.includes('PAYMENT')) {
-        alert('Thông báo: Đơn này chưa thanh toán phí môi giới nên không cần khiếu nại hoàn tiền. Bạn hãy bấm nút "Hủy đơn" màu đỏ để hủy bỏ đơn này trực tiếp nhé!');
+      console.error('Create dispute failed:', {
+          status: err.status,
+          message: err.message,
+          data: err.data
+      });
+
+      if (err.status === 401 || err.status === 403) {
+          alert('Bạn không có quyền gửi khiếu nại. Vui lòng đăng nhập lại.');
+      } else if (err.status === 400) {
+          alert('Thông tin khiếu nại không hợp lệ: ' + err.message);
+      } else if (err.status >= 500) {
+          alert('Máy chủ gặp lỗi khi xử lý khiếu nại. Vui lòng thử lại.');
       } else {
-        alert('Lỗi gửi khiếu nại: ' + msg);
+          alert('Không thể gửi khiếu nại: ' + err.message);
       }
     } finally {
       setSubmittingDispute(false);

@@ -25,7 +25,9 @@ export default function PaymentCheckoutModal({
   amount = 0,
   currentUser = null,
   onSuccess = null,
-  onOpenTopUp = null
+  onOpenTopUp = null,
+  onContinue = null,
+  hasNextPayment = false
 }) {
   const [wallet, setWallet] = useState(null);
   const [isLoadingWallet, setIsLoadingWallet] = useState(false);
@@ -40,32 +42,52 @@ export default function PaymentCheckoutModal({
 
   // Fetch student wallet whenever modal opens
   useEffect(() => {
-    if (!isOpen || !currentUser?.id) {
       setPaymentSuccess(null);
       setErrorMsg('');
-      return;
-    }
 
-    async function fetchWallet() {
-      setIsLoadingWallet(true);
-      setErrorMsg('');
-      try {
-        const w = await walletApi.getMyWallet();
-        setWallet(w || { availableBalance: 0, holdingBalance: 0 });
-      } catch (err) {
-        console.warn('Lỗi lấy ví người dùng:', err);
-        // Fallback wallet if new user doesn't have wallet loaded yet
-        setWallet({
-          availableBalance: 0,
-          holdingBalance: 0
-        });
-      } finally {
-        setIsLoadingWallet(false);
+      if (!isOpen || !currentUser?.id) {
+          return;
       }
-    }
 
-    fetchWallet();
-  }, [isOpen, currentUser?.id]);
+      let cancelled = false;
+
+      async function fetchWallet() {
+          setIsLoadingWallet(true);
+
+          try {
+              const w = await walletApi.getMyWallet();
+
+              if (!cancelled) {
+                  setWallet(w || {
+                      availableBalance: 0,
+                      holdingBalance: 0
+                  });
+              }
+          } catch (err) {
+              console.error('Lỗi lấy ví:', err);
+
+              if (!cancelled) {
+                  setErrorMsg('Không thể tải số dư ví.');
+              }
+          } finally {
+              if (!cancelled) {
+                  setIsLoadingWallet(false);
+              }
+          }
+      }
+
+      fetchWallet();
+
+      return () => {
+          cancelled = true;
+      };
+  }, [
+      isOpen,
+      currentUser?.id,
+      enrollmentId,
+      bookingId,
+      type
+  ]);
 
   if (!isOpen) return null;
 
@@ -261,11 +283,19 @@ export default function PaymentCheckoutModal({
 
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
                 <button
-                  className="btn btn-primary"
-                  onClick={onClose}
-                  style={{ padding: '12px 32px', fontSize: '0.95rem' }}
+                    className="btn btn-primary"
+                    onClick={onContinue || onClose}
+                    style={{ padding: '12px 32px', fontSize: '0.95rem' }}
                 >
-                  {type === 'course' ? 'Xem video bài giảng' : 'Đã hiểu & Đóng'}
+                    {type === 'course'
+                        ? (
+                            hasNextPayment
+                                ? 'Thanh toán khóa học tiếp theo'
+                                : onContinue
+                                    ? 'Hoàn tất thanh toán'
+                                    : 'Xem video bài giảng'
+                        )
+                        : 'Đã hiểu & Đóng'}
                 </button>
               </div>
             </div>

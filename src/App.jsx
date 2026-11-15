@@ -110,6 +110,8 @@ export default function App() {
     amount: 0
   });
   const [enrolledCourseIds, setEnrolledCourseIds] = useState([]);
+  const [cartCheckoutQueue, setCartCheckoutQueue] = useState([]);
+  const [cartCheckoutIndex, setCartCheckoutIndex] = useState(0);
 
   // Chat & Messenger Modal State
   const [chatModalOpen, setChatModalOpen] = useState(false);
@@ -254,33 +256,44 @@ export default function App() {
   };
 
   // Mở Checkout Modal
-  const handleOpenCheckout = ({ type, item, enrollmentId, bookingId, amount }) => {
-    setCheckoutData({
+  const handleOpenCheckout = ({
       type,
       item,
       enrollmentId,
       bookingId,
       amount
-    });
-    setCheckoutModalOpen(true);
+  }) => {
+      setCartCheckoutQueue([]);
+      setCartCheckoutIndex(0);
+
+      setCheckoutData({
+          type,
+          item,
+          enrollmentId,
+          bookingId,
+          amount
+      });
+
+      setCheckoutModalOpen(true);
   };
 
   // Xử lý sau khi thanh toán thành công
   const handlePaymentSuccess = async (result) => {
-    if (!result || result.status !== 'SUCCESS') {
-      return;
-    }
+      if (!result || result.status !== 'SUCCESS') {
+          return;
+      }
 
-    if (currentUser) {
-      await Promise.all([
-        loadUserWallet(currentUser),
-        loadUserNotifications(currentUser)
-      ]);
-    }
+      if (currentUser) {
+          await Promise.all([
+              loadUserWallet(currentUser),
+              loadUserNotifications(currentUser),
+              loadCartAndWishlist(currentUser)
+          ]);
+      }
 
-    if (checkoutData.type === 'course') {
-      await loadUserEnrollments(currentUser);
-    }
+      if (checkoutData.type === 'course') {
+          await loadUserEnrollments(currentUser);
+      }
   };
 
   // Check Backend connection & load real data if online
@@ -316,50 +329,55 @@ export default function App() {
           await loadConversationsCount(user);
 
         } catch (e) {
-          console.log(
-            'Không thể khôi phục phiên đăng nhập:',
-            e.message
+          console.error(
+              'Không thể khôi phục phiên đăng nhập:',
+              e
           );
 
           const token = authApi.getToken();
           const payload = parseJwtPayload(token);
 
-          // Token bị từ chối hoặc hết hạn: xóa phiên local
-          if (
-            e.status === 401 ||
-            !payload ||
-            !payload.exp ||
-            payload.exp * 1000 <= Date.now()
-          ) {
-            authApi.clearSession();
-            setCurrentUser(null);
+          const expiresAt = Number(payload?.exp);
+
+          // Kiểm tra token có hợp lệ và còn hạn không
+          const invalidToken =
+              !payload ||
+              !payload.sub ||
+              !Number.isFinite(expiresAt) ||
+              expiresAt * 1000 <= Date.now();
+
+          // Chỉ xóa phiên khi token không hợp lệ,
+          // token hết hạn hoặc backend trả về 401.
+          if (e?.status === 401 || invalidToken) {
+              authApi.clearSession();
+
+              console.warn('Phiên đăng nhập không hợp lệ hoặc đã hết hạn.');
 
           } else {
-            const tokenRole = getRoleFromToken(token);
-
-            // Chỉ dùng fallback khi chưa nhận được 401
-            const fallbackUser = {
-              id: payload.sub,
-              displayName:
-                tokenRole === 'ADMIN'
-                  ? 'Admin'
-                  : tokenRole === 'TUTOR'
-                    ? 'Gia sư'
-                    : 'Học viên',
-              role: tokenRole || 'STUDENT',
-            };
-
-            savedUser = fallbackUser;
-
-            setCurrentUser(fallbackUser);
-
-            await loadUserEnrollments(fallbackUser);
-            await loadUserNotifications(fallbackUser);
-            await loadCartAndWishlist(fallbackUser);
-            await loadConversationsCount(fallbackUser);
-            await loadUserWallet(fallbackUser);
+              // Lỗi mạng, HTTP 500 hoặc 403:
+              // Không tự tạo tài khoản giả và không xóa token.
+              console.warn(
+                  'Không thể xác minh tài khoản. Giữ token để thử lại sau.'
+              );
           }
+
+          // Không xác minh được thông tin người dùng thì không đăng nhập.
+          savedUser = null;
+          setCurrentUser(null);
+
+          // Reset dữ liệu riêng của tài khoản.
+          setUserWallet({
+              availableBalance: 0,
+              holdingBalance: 0
+          });
+
+          setEnrolledCourseIds([]);
+          setNotificationCount(0);
+          setConversationCount(0);
+          setCartItems([]);
+          setWishlistItems([]);
         }
+        
 
       } else {
         setCurrentUser(null);
@@ -708,17 +726,107 @@ export default function App() {
   };
 
   const handleCheckoutCart = async () => {
-    try {
-      await cartApi.checkout();
-      await loadUserEnrollments(currentUser);
-      await loadCartAndWishlist(currentUser);
-      await loadUserWallet(currentUser);
-      alert('🎉 Thanh toán & Ghi danh thành công tất cả khóa học trong giỏ hàng! Toàn bộ video bài giảng đã được mở khóa.');
-    } catch (err) {
-      alert('Lỗi thanh toán giỏ hàng: ' + (err.data?.message || err.message));
-      throw err;
-    }
+      try {
+          // 1. Backend tạo hoặc lấy lại các enrollment PENDING
+          const enrollments = await cartApi.checkout();
+
+          const pendingEnrollments = (Array.isArray(enrollments) ? enrollments : [])
+              .filter(e => e.status === 'PENDING');
+
+          // 2. Không có enrollment cần thanh toán
+          if (pendingEnrollments.length === 0) {
+              await loadCartAndWishlist(currentUser);
+              await loadUserEnrollments(currentUser);
+
+              alert('Không có khóa học nào đang chờ thanh toán.');
+              return;
+          }
+
+          // 3. Chuẩn bị danh sách thanh toán
+          const queue = pendingEnrollments.map(enrollment => {
+              const course = courses.find(
+                  c => c.id === enrollment.courseId
+              );
+
+              const cartItem = cartItems.find(
+                  c => c.courseId === enrollment.courseId
+              );
+
+              const amount = Number(
+                  enrollment.pricePaid ??
+                  cartItem?.price ??
+                  course?.price ??
+                  0
+              );
+
+              return {
+                  type: 'course',
+                  item: {
+                      ...(course || {}),
+                      id: enrollment.courseId,
+                      title: course?.title || cartItem?.courseTitle || 'Khóa học',
+                      price: amount,
+                      thumbnail: course?.thumbnail || course?.image || null
+                  },
+                  enrollmentId: enrollment.id,
+                  bookingId: null,
+                  amount
+              };
+          });
+
+          // 4. Khởi tạo hàng đợi thanh toán
+          setCartCheckoutQueue(queue);
+          setCartCheckoutIndex(0);
+
+          // 5. Mở thanh toán khóa học đầu tiên
+          setCheckoutData(queue[0]);
+          setCheckoutModalOpen(true);
+
+      } catch (err) {
+          console.error('Lỗi checkout giỏ hàng:', err);
+
+          alert(
+              'Không thể tạo đơn thanh toán: ' +
+              (err.data?.message || err.message)
+          );
+
+          throw err;
+      }
   };
+
+  
+  const handleContinueCartCheckout = async () => {
+      const nextIndex = cartCheckoutIndex + 1;
+
+      // Nếu còn khóa học chưa thanh toán
+      if (nextIndex < cartCheckoutQueue.length) {
+          setCartCheckoutIndex(nextIndex);
+          setCheckoutData(cartCheckoutQueue[nextIndex]);
+          return;
+      }
+
+      // Đã thanh toán hết danh sách
+      setCheckoutModalOpen(false);
+      setCartCheckoutQueue([]);
+      setCartCheckoutIndex(0);
+
+      await Promise.all([
+          loadCartAndWishlist(currentUser),
+          loadUserEnrollments(currentUser),
+          loadUserWallet(currentUser)
+      ]);
+
+      alert('Đã hoàn tất thanh toán tất cả khóa học!');
+  };
+
+
+  const handleCloseCheckout = () => {
+      setCheckoutModalOpen(false);
+      setCartCheckoutQueue([]);
+      setCartCheckoutIndex(0);
+  };
+
+
 
   // ==================== WISHLIST ACTIONS (CSDL PostgreSQL) ====================
   const handleToggleWishlist = async (courseId) => {
@@ -1486,16 +1594,24 @@ export default function App() {
       />
 
       <PaymentCheckoutModal
-        isOpen={checkoutModalOpen}
-        onClose={() => setCheckoutModalOpen(false)}
-        type={checkoutData.type}
-        item={checkoutData.item}
-        enrollmentId={checkoutData.enrollmentId}
-        bookingId={checkoutData.bookingId}
-        amount={checkoutData.amount}
-        currentUser={currentUser}
-        onSuccess={handlePaymentSuccess}
-        onOpenTopUp={() => setWalletModalOpen(true)}
+          isOpen={checkoutModalOpen}
+          onClose={handleCloseCheckout}
+          type={checkoutData.type}
+          item={checkoutData.item}
+          enrollmentId={checkoutData.enrollmentId}
+          bookingId={checkoutData.bookingId}
+          amount={checkoutData.amount}
+          currentUser={currentUser}
+          onSuccess={handlePaymentSuccess}
+          onContinue={
+              cartCheckoutQueue.length > 0
+                  ? handleContinueCartCheckout
+                  : null
+          }
+          hasNextPayment={
+              cartCheckoutIndex < cartCheckoutQueue.length - 1
+          }
+          onOpenTopUp={() => setWalletModalOpen(true)}
       />
 
       <WalletTopUpModal

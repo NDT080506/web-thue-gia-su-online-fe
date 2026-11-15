@@ -15,136 +15,52 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
 
   if (!isOpen) return null;
 
-  const handleQuickDemoLogin = (roleType) => {
-    let mockUser = null;
-    let mockScope = '';
-    if (roleType === 'ADMIN') {
-      mockScope = 'ROLE_ADMIN';
-      mockUser = {
-        id: 'admin-001',
-        displayName: 'Quản trị viên (Admin)',
-        email: 'admin@edututor.com',
-        role: 'ADMIN'
-      };
-    } else if (roleType === 'TUTOR') {
-      mockScope = 'ROLE_TUTOR';
-      mockUser = {
-        id: '63d91ca1-d606-4d51-849c-c90749a7bd5c',
-        displayName: 'ThS. Nguyễn Văn Toàn (Gia sư)',
-        email: 'tutor@edututor.com',
-        role: 'TUTOR'
-      };
-    } else {
-      mockScope = 'ROLE_STUDENT';
-      mockUser = {
-        id: 'student-001',
-        displayName: 'Nguyễn Văn Học Sinh',
-        email: 'student@edututor.com',
-        role: 'STUDENT'
-      };
-    }
-
-    try {
-      const header = btoa(JSON.stringify({ alg: 'HS256', typ: 'JWT' }));
-      const payload = btoa(JSON.stringify({
-        sub: mockUser.id,
-        scope: mockScope,
-        exp: Math.floor(Date.now() / 1000) + 86400 * 7
-      }));
-      const fakeToken = `${header}.${payload}.mockSignature`;
-      localStorage.setItem('token', fakeToken);
-    } catch (e) {
-      console.warn('Không thể tạo mock token:', e);
-    }
-
-    setSuccessMessage(`Đăng nhập thành công với vai trò ${mockUser.role}!`);
-    if (onLoginSuccess) {
-      onLoginSuccess(mockUser);
-    }
-    setTimeout(() => {
-      onClose();
-    }, 400);
-  };
-
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    setErrorMessage('');
-    setSuccessMessage('');
+    if (mode === 'login') {
+      const inputName = (displayName || email || '').trim();
 
-    try {
-      if (mode === 'login') {
-        let inputName = (displayName || email || '').trim();
-        // 1. Đăng nhập qua BE: POST /auth/login với displayName hoặc email
-        let loginRes = null;
-        try {
-          loginRes = await authApi.login(inputName, password);
-        } catch (beErr) {
-          console.warn('Backend chưa online, tự động dùng mock login:', beErr);
-          const lower = inputName.toLowerCase();
-          let targetRole = role || 'STUDENT';
-          if (lower.includes('admin')) targetRole = 'ADMIN';
-          else if (lower.includes('tutor') || lower.includes('user001') || lower.includes('gia')) targetRole = 'TUTOR';
-          handleQuickDemoLogin(targetRole);
-          setLoading(false);
-          return;
-        }
+      try {
+          const loginRes = await authApi.login(inputName, password);
 
-        const token = loginRes?.accessToken || loginRes?.token || authApi.getToken();
-        const tokenRole = getRoleFromToken(token);
-        
-        // 2. Lấy thông tin user
-        let userInfo = null;
-        try {
-          userInfo = await authApi.getMyInfo();
-        } catch (err) {
-          console.warn('Không thể gọi getMyInfo:', err);
-        }
+          const token = loginRes?.accessToken || loginRes?.token;
 
-        if (!userInfo) {
-          userInfo = {
-            displayName: displayName || email,
-            email: (displayName && displayName.includes('@')) ? displayName : (email || ''),
-            role: tokenRole || role || 'STUDENT'
-          };
-        } else if (tokenRole) {
-          userInfo.role = tokenRole;
-        }
+          if (!token) {
+              throw new Error('Backend không trả về access token.');
+          }
 
-        setSuccessMessage('Đăng nhập thành công!');
-        if (onLoginSuccess) {
-          onLoginSuccess(userInfo);
-        }
-        setTimeout(() => {
-          onClose();
-        }, 800);
-      } else {
-        // Đăng ký qua BE: POST /users
-        if (password.length < 8) {
-          setErrorMessage('Mật khẩu phải có tối thiểu 8 ký tự (theo quy định của Backend).');
-          setLoading(false);
-          return;
-        }
+          const userInfo = await authApi.getMyInfo();
 
-        await authApi.register({
-          email: email,
-          password: password,
-          displayName: displayName,
-          role: role
-        });
+          if (!userInfo?.id) {
+              throw new Error('Không thể xác thực thông tin tài khoản.');
+          }
 
-        setSuccessMessage('Đăng ký tài khoản thành công! Vui lòng kiểm tra email để xác thực.');
-        setTimeout(() => {
-          setMode('login');
-          setSuccessMessage('');
-        }, 2000);
+          const tokenRole = getRoleFromToken(token);
+
+          if (tokenRole) {
+              userInfo.role = tokenRole;
+          }
+
+          setSuccessMessage('Đăng nhập thành công!');
+
+          if (onLoginSuccess) {
+              await onLoginSuccess(userInfo);
+          }
+
+          setTimeout(() => onClose(), 800);
+
+      } catch (err) {
+          authApi.clearSession();
+
+          if (err.status === 401 || err.status === 403) {
+              setErrorMessage('Tên đăng nhập hoặc mật khẩu không chính xác.');
+          } else {
+              setErrorMessage(
+                  err.message || 'Không thể kết nối đến máy chủ.'
+              );
+          }
       }
-    } catch (err) {
-      console.error('Lỗi API Backend:', err);
-      const serverMsg = err.data?.message || err.message || 'Lỗi kết nối Backend';
-      setErrorMessage(`Backend báo lỗi: ${serverMsg}`);
-    } finally {
-      setLoading(false);
+
+      return;
     }
   };
 

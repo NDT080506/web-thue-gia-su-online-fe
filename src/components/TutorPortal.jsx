@@ -39,7 +39,6 @@ import {
   withdrawalApi,
   reviewApi,
   tutorProfileApi,
-  tutorApplicationApi,
   walletApi,
   conversationApi
 } from '../services/api';
@@ -62,7 +61,6 @@ export default function TutorPortal({
   const [withdrawals, setWithdrawals] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [profile, setProfile] = useState({ bio: '', subjectsCanTeach: '' });
-  const [application, setApplication] = useState(null);
   const [conversations, setConversations] = useState([]);
   const [enrollments, setEnrollments] = useState({});
 
@@ -142,7 +140,6 @@ export default function TutorPortal({
         withdrawalsRes,
         reviewsRes,
         profileRes,
-        appRes,
         convRes
       ] = await Promise.allSettled([
         bookingApi.getTutorBookings(),
@@ -151,7 +148,6 @@ export default function TutorPortal({
         withdrawalApi.getMyWithdrawals(),
         reviewApi.getTutorReviews(),
         tutorProfileApi.getMyProfile(),
-        tutorApplicationApi.getMyApplication(),
         conversationApi.getMyConversations()
       ]);
 
@@ -186,9 +182,6 @@ export default function TutorPortal({
           bio: profileRes.value.bio || '',
           subjectsCanTeach: profileRes.value.subjectsCanTeach || ''
         });
-      }
-      if (appRes.status === 'fulfilled' && appRes.value) {
-        setApplication(appRes.value);
       }
       if (convRes.status === 'fulfilled' && convRes.value) {
         setConversations(convRes.value || []);
