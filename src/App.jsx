@@ -27,7 +27,7 @@ import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
 import CreatePackageModal from './components/CreatePackageModal';
 import TutorCoursePackageManager from './components/TutorCoursePackageManager';
-import { topTutors, featuredCourses, communityArticles } from './data/mockData';
+import {communityArticles } from './data/mockData';
 import {
   authApi,
   articleApi,
@@ -68,8 +68,8 @@ export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [isBackendOnline, setIsBackendOnline] = useState(false);
 
-  const [courses, setCourses] = useState(featuredCourses);
-  const [tutors, setTutors] = useState(topTutors);
+  const [courses, setCourses] = useState([]);
+  const [tutors, setTutors] = useState([]);
   const [articles, setArticles] = useState(communityArticles);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
@@ -134,7 +134,7 @@ export default function App() {
     if (keyword) {
       setTimeout(() => {
         const clean = removeVietnameseTones(keyword);
-        const hasTutorMatch = topTutors.some(t =>
+        const hasTutorMatch = tutors.some(t =>
           removeVietnameseTones(t.name).includes(clean)
         );
         const hasCourseMatch = courses.some(c =>
@@ -409,13 +409,13 @@ export default function App() {
         try {
           const realCourses = await courseApi.getCourses();
 
-          if (realCourses?.length > 0) {
-            const formatted = realCourses.map(
-              (c, i) => formatCourseFromBackend(c, i)
-            );
+          const formatted = Array.isArray(realCourses)
+            ? realCourses
+                .map(course => formatCourseFromBackend(course))
+                .filter(Boolean)
+            : [];
 
-            setCourses(formatted);
-          }
+          setCourses(formatted);
         } catch (err) {
           console.warn('Lỗi lấy courses từ BE:', err);
         }
@@ -481,14 +481,7 @@ export default function App() {
 
       // 4. Chuẩn hóa danh sách gia sư
       setTutors((prev) => {
-        const baseTutors =
-          prev?.length > 0 ? prev : topTutors;
-
         const mapById = new Map();
-
-        baseTutors.forEach((tutor) => {
-          mapById.set(tutor.id, { ...tutor });
-        });
 
         realTutors.forEach((rt, idx) => {
           const tutorId = rt.id || rt.userId;
@@ -531,8 +524,7 @@ export default function App() {
               rating: Number(rt.rating ?? 5),
               reviews: 0,
               students: 0,
-              hourlyRate:
-                pkgsForThisTutor[0]?.price || 250000,
+              hourlyRate: pkgsForThisTutor[0]?.price ?? 0,
               subjects: subjects.length
                 ? subjects
                 : ['Dạy kèm 1-1'],
@@ -569,7 +561,7 @@ export default function App() {
               rating: 5,
               reviews: 0,
               students: 0,
-              hourlyRate: myPkgs[0]?.price || 250000,
+              hourlyRate: myPkgs[0]?.price ?? 0,
               subjects: ['Dạy kèm 1-1'],
               isVerified: true,
               bio: '',
@@ -584,9 +576,10 @@ export default function App() {
             (pkg) => pkg.tutorId === tutor.id
           );
 
-          return matchedPkgs.length > 0
-            ? { ...tutor, packages: matchedPkgs }
-            : tutor;
+          return {
+            ...tutor,
+            packages: matchedPkgs
+          };
         });
       });
 
@@ -607,12 +600,17 @@ export default function App() {
   const fetchCourses = async () => {
     try {
       const realCourses = await courseApi.getCourses();
-      if (realCourses && realCourses.length > 0) {
-        const formatted = realCourses.map((c, i) => formatCourseFromBackend(c, i));
-        setCourses(formatted);
-      }
+
+      const formatted = Array.isArray(realCourses)
+        ? realCourses
+            .map(course => formatCourseFromBackend(course))
+            .filter(Boolean)
+        : [];
+
+      setCourses(formatted);
     } catch (err) {
-      console.warn('Lỗi lấy courses từ BE:', err);
+      console.error('Lỗi tải khóa học:', err);
+      setCourses([]);
     }
   };
 
