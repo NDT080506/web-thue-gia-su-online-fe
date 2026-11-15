@@ -33,6 +33,40 @@ import { adminApi, articleApi } from '../services/api';
 
 const PAGE_SIZE = 10;
 
+const TABLE_STYLES = {
+  wrapper: {
+    width: '100%',
+    overflowX: 'auto',
+    border: '1px solid #e2e8f0',
+    borderRadius: 8
+  },
+
+  table: {
+    width: '100%',
+    minWidth: 1050,
+    borderCollapse: 'collapse',
+    textAlign: 'left',
+    fontSize: '0.84rem'
+  },
+
+  headerCell: {
+    padding: '13px 14px',
+    background: '#f1f5f9',
+    color: '#475569',
+    fontWeight: 700,
+    whiteSpace: 'nowrap',
+    borderBottom: '1px solid #cbd5e1'
+  },
+
+  cell: {
+    padding: '13px 14px',
+    color: '#334155',
+    borderBottom: '1px solid #e2e8f0',
+    verticalAlign: 'middle',
+    lineHeight: 1.5
+  }
+};
+
 function Pagination({
   page = 0,
   totalPages = 0,
@@ -107,7 +141,7 @@ function Pagination({
           onClick={() => onPageChange(page - 1)}
           style={buttonStyle()}
         >
-          Trước
+          {'<'}
         </button>
 
         {start > 0 && (
@@ -158,7 +192,7 @@ function Pagination({
           onClick={() => onPageChange(page + 1)}
           style={buttonStyle()}
         >
-          Sau
+          {'>'}
         </button>
 
         <button
@@ -731,12 +765,58 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
             Bảo mật & Giám sát
           </div>
 
+          {/* NHẬT KÝ KIỂM TOÁN - PAYMENT TRANSACTIONS */}
           <button
-            onClick={() => { setActiveTab('action-logs'); setSearchTerm(''); fetchActionLogs(0); fetchTransactions(0);}}
+            onClick={() => {
+              setActiveTab('transactions');
+              fetchTransactions(0);
+            }}
             style={{
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'space-between',
+              width: '100%',
+              padding: '11px 20px',
+              border: 'none',
+              background: activeTab === 'transactions' ? '#f5f3ff' : 'transparent',
+              color: activeTab === 'transactions' ? '#7c3aed' : '#475569',
+              fontWeight: activeTab === 'transactions' ? 700 : 500,
+              fontSize: '0.9rem',
+              textAlign: 'left',
+              cursor: 'pointer',
+              borderLeft: activeTab === 'transactions'
+                ? '4px solid #7c3aed'
+                : '4px solid transparent'
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <CreditCard size={18} />
+              <span>Nhật ký kiểm toán</span>
+            </div>
+
+            <span style={{
+              fontSize: '0.75rem',
+              background: '#e2e8f0',
+              color: '#475569',
+              padding: '1px 7px',
+              borderRadius: 10,
+              fontWeight: 700
+            }}>
+              {transactionTotalElements}
+            </span>
+          </button>
+
+          {/* NHẬT KÝ HOẠT ĐỘNG - ACTION LOGS */}
+          <button
+            onClick={() => {
+              setActiveTab('action-logs');
+              fetchActionLogs(0);
+            }}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
               padding: '11px 20px',
               border: 'none',
               background: activeTab === 'action-logs' ? '#f5f3ff' : 'transparent',
@@ -745,15 +825,25 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
               fontSize: '0.9rem',
               textAlign: 'left',
               cursor: 'pointer',
-              borderLeft: activeTab === 'action-logs' ? '4px solid #7c3aed' : '4px solid transparent'
+              borderLeft: activeTab === 'action-logs'
+                ? '4px solid #7c3aed'
+                : '4px solid transparent'
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Activity size={18} />
-              <span>Nhật Ký Kiểm Toán</span>
+              <span>Nhật ký hoạt động</span>
             </div>
-            <span style={{ fontSize: '0.75rem', background: '#e2e8f0', color: '#475569', padding: '1px 7px', borderRadius: 10, fontWeight: 700 }}>
-              {actionLogs.length}
+
+            <span style={{
+              fontSize: '0.75rem',
+              background: '#e2e8f0',
+              color: '#475569',
+              padding: '1px 7px',
+              borderRadius: 10,
+              fontWeight: 700
+            }}>
+              {actionLogTotalElements}
             </span>
           </button>
 
@@ -1628,9 +1718,9 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
 
           
           {/* TAB: KIỂM TOÁN & PAYMENT TRANSACTIONS */}
-          {activeTab === 'action-logs' && (
+          {/* TAB: NHẬT KÝ KIỂM TOÁN - PAYMENT TRANSACTIONS */}
+          {activeTab === 'transactions' && (
             <div>
-
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -1646,7 +1736,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                     margin: 0,
                     color: '#0f172a'
                   }}>
-                    Kiểm toán hệ thống & Giao dịch thanh toán
+                    Nhật ký kiểm toán
                   </h2>
 
                   <p style={{
@@ -1654,116 +1744,234 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                     color: '#64748b',
                     fontSize: '0.88rem'
                   }}>
-                    Theo dõi giao dịch ví, ký quỹ, giải ngân và nhật ký thao tác.
+                    Theo dõi toàn bộ giao dịch nạp tiền, giữ tiền ký quỹ,
+                    giải ngân và phí nền tảng.
                   </p>
                 </div>
 
                 <button
-                  onClick={() => {
-                    fetchTransactions(0);
-                    fetchActionLogs(0);
+                  type="button"
+                  onClick={() => fetchTransactions(0)}
+                  disabled={transactionLoading}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '8px 14px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 7,
+                    background: '#fff',
+                    color: '#475569',
+                    fontWeight: 600,
+                    cursor: transactionLoading ? 'not-allowed' : 'pointer'
                   }}
                 >
-                  <RefreshCw size={14} /> Làm mới
+                  <RefreshCw
+                    size={14}
+                    className={transactionLoading ? 'animate-spin' : ''}
+                  />
+                  Làm mới
                 </button>
               </div>
 
-              {/* PAYMENT TRANSACTIONS */}
               <section style={{
                 background: '#fff',
                 border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: 18,
-                marginBottom: 24
+                borderRadius: 12,
+                padding: 20,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
               }}>
-
-                <h3>Payment Transactions</h3>
-
-                <p>
-                  Tổng số giao dịch: {transactionTotalElements}
-                </p>
-
-                <p>
-                  Trang {transactionTotalPages ? transactionPage + 1 : 0}
-                  /{transactionTotalPages}
-                </p>
-
-                {transactionLoading ? (
-                  <div style={{ padding: 24, textAlign: 'center' }}>
-                    <Loader2 className="animate-spin" />
-                    Đang tải giao dịch...
-                  </div>
-                ) : transactions.length === 0 ? (
-                  <div style={{ padding: 28, textAlign: 'center' }}>
-                    Chưa có payment transaction nào.
-                  </div>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      textAlign: 'left',
-                      fontSize: '0.82rem'
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  marginBottom: 16
+                }}>
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.05rem',
+                      fontWeight: 800,
+                      color: '#1e293b'
                     }}>
-                      <thead>
-                        <tr>
-                          <th>Thời gian</th>
-                          <th>Mã giao dịch</th>
-                          <th>Loại</th>
-                          <th>Booking / Enrollment</th>
-                          <th>Số tiền</th>
-                          <th>Ví nguồn / Ví đích</th>
-                          <th>Ghi chú</th>
-                        </tr>
-                      </thead>
+                      Payment Transactions
+                    </h3>
 
-                      <tbody>
-                        {transactions.map(tx => (
-                          <tr key={tx.id}>
-                            <td>
+                    <p style={{
+                      margin: '5px 0 0',
+                      color: '#64748b',
+                      fontSize: '0.84rem'
+                    }}>
+                      Tổng số giao dịch: <strong>{transactionTotalElements}</strong>
+                    </p>
+                  </div>
+
+                  <span style={{
+                    padding: '5px 10px',
+                    borderRadius: 20,
+                    background: '#eff6ff',
+                    color: '#2563eb',
+                    fontSize: '0.78rem',
+                    fontWeight: 700
+                  }}>
+                    {PAGE_SIZE} bản ghi / trang
+                  </span>
+                </div>
+
+                <div style={TABLE_STYLES.wrapper}>
+                  <table style={TABLE_STYLES.table}>
+                    <thead>
+                      <tr>
+                        <th style={TABLE_STYLES.headerCell}>Thời gian</th>
+                        <th style={TABLE_STYLES.headerCell}>Mã giao dịch</th>
+                        <th style={TABLE_STYLES.headerCell}>Loại giao dịch</th>
+                        <th style={TABLE_STYLES.headerCell}>Booking / Enrollment</th>
+                        <th style={{ ...TABLE_STYLES.headerCell, textAlign: 'right' }}>
+                          Số tiền
+                        </th>
+                        <th style={TABLE_STYLES.headerCell}>Ví nguồn</th>
+                        <th style={TABLE_STYLES.headerCell}>Ví đích</th>
+                        <th style={TABLE_STYLES.headerCell}>Ghi chú</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {transactionLoading ? (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            style={{
+                              ...TABLE_STYLES.cell,
+                              textAlign: 'center',
+                              padding: 32
+                            }}
+                          >
+                            <Loader2
+                              size={20}
+                              className="animate-spin"
+                              style={{ display: 'inline-block', verticalAlign: 'middle' }}
+                            />
+                            <span style={{ marginLeft: 8 }}>Đang tải giao dịch...</span>
+                          </td>
+                        </tr>
+                      ) : transactions.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={8}
+                            style={{
+                              ...TABLE_STYLES.cell,
+                              textAlign: 'center',
+                              padding: 36,
+                              color: '#94a3b8'
+                            }}
+                          >
+                            Chưa có giao dịch thanh toán nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        transactions.map((tx, index) => (
+                          <tr
+                            key={tx.id}
+                            style={{
+                              background: index % 2 === 0 ? '#ffffff' : '#f8fafc'
+                            }}
+                          >
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              whiteSpace: 'nowrap'
+                            }}>
                               {tx.createdAt
                                 ? new Date(tx.createdAt).toLocaleString('vi-VN')
                                 : '—'}
                             </td>
 
-                            <td>{tx.id?.slice(0, 10) || '—'}</td>
-
                             <td style={{
-                              fontWeight: 700,
-                              color: tx.type === 'ESCROW_RELEASE'
-                                ? '#15803d'
-                                : tx.type === 'ESCROW_HOLD'
-                                  ? '#b45309'
-                                  : '#334155'
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              fontSize: '0.8rem'
                             }}>
-                              {tx.type || '—'}
+                              {tx.id || '—'}
                             </td>
 
-                            <td>
+                            <td style={TABLE_STYLES.cell}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 9px',
+                                borderRadius: 20,
+                                fontSize: '0.75rem',
+                                fontWeight: 800,
+                                whiteSpace: 'nowrap',
+                                background:
+                                  tx.type === 'ESCROW_RELEASE'
+                                    ? '#dcfce7'
+                                    : tx.type === 'ESCROW_HOLD'
+                                      ? '#fef3c7'
+                                      : '#e2e8f0',
+                                color:
+                                  tx.type === 'ESCROW_RELEASE'
+                                    ? '#15803d'
+                                    : tx.type === 'ESCROW_HOLD'
+                                      ? '#b45309'
+                                      : '#475569'
+                              }}>
+                                {tx.type || '—'}
+                              </span>
+                            </td>
+
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              fontSize: '0.8rem',
+                              maxWidth: 190,
+                              overflowWrap: 'anywhere'
+                            }}>
                               {tx.bookingId || tx.enrollmentId || '—'}
                             </td>
 
                             <td style={{
+                              ...TABLE_STYLES.cell,
                               textAlign: 'right',
-                              fontWeight: 700
+                              fontWeight: 800,
+                              whiteSpace: 'nowrap'
                             }}>
                               {formatVND(tx.amount)}
                             </td>
 
-                            <td>
-                              <div>{tx.sourceWalletId || '—'}</div>
-                              <div>→ {tx.destinationWalletId || 'Escrow holding'}</div>
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              fontSize: '0.78rem',
+                              maxWidth: 170,
+                              overflowWrap: 'anywhere'
+                            }}>
+                              {tx.sourceWalletId || '—'}
                             </td>
 
-                            <td>{tx.note || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              fontSize: '0.78rem',
+                              maxWidth: 170,
+                              overflowWrap: 'anywhere'
+                            }}>
+                              {tx.destinationWalletId || 'Escrow holding'}
+                            </td>
 
-                {/* TRANSACTION PAGINATION */}
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              minWidth: 180
+                            }}>
+                              {tx.note || '—'}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
                 <Pagination
                   page={transactionPage}
                   totalPages={transactionTotalPages}
@@ -1772,84 +1980,228 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                   onPageChange={fetchTransactions}
                   loading={transactionLoading}
                 />
-
               </section>
+            </div>
+          )}
 
-              {/* ACTION LOGS */}
+          {/* TAB: NHẬT KÝ HOẠT ĐỘNG - ACTION LOGS */}
+          {activeTab === 'action-logs' && (
+            <div>
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+                marginBottom: 20
+              }}>
+                <div>
+                  <h2 style={{
+                    fontSize: '1.35rem',
+                    fontWeight: 800,
+                    margin: 0,
+                    color: '#0f172a'
+                  }}>
+                    Nhật ký hoạt động hệ thống
+                  </h2>
+
+                  <p style={{
+                    margin: '4px 0 0',
+                    color: '#64748b',
+                    fontSize: '0.88rem'
+                  }}>
+                    Theo dõi các thao tác của người dùng như đăng nhập,
+                    đăng xuất, tạo tài khoản và các hoạt động quản trị.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={() => fetchActionLogs(0)}
+                  disabled={actionLogLoading}
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 7,
+                    padding: '8px 14px',
+                    border: '1px solid #cbd5e1',
+                    borderRadius: 7,
+                    background: '#fff',
+                    color: '#475569',
+                    fontWeight: 600,
+                    cursor: actionLogLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  <RefreshCw
+                    size={14}
+                    className={actionLogLoading ? 'animate-spin' : ''}
+                  />
+                  Làm mới
+                </button>
+              </div>
+
               <section style={{
                 background: '#fff',
                 border: '1px solid #e2e8f0',
-                borderRadius: 10,
-                padding: 18
+                borderRadius: 12,
+                padding: 20,
+                boxShadow: '0 1px 3px rgba(0,0,0,0.04)'
               }}>
-
-                <h3>Nhật ký thao tác (Action Logs)</h3>
-
-                <p>
-                  Tổng số bản ghi: {actionLogTotalElements}
-                </p>
-
-                <p>
-                  Trang {actionLogTotalPages ? actionLogPage + 1 : 0}
-                  /{actionLogTotalPages}
-                </p>
-
-                {actionLogLoading ? (
-                  <div style={{ padding: 24, textAlign: 'center' }}>
-                    <Loader2 className="animate-spin" />
-                    Đang tải nhật ký...
-                  </div>
-                ) : actionLogs.length === 0 ? (
-                  <div style={{ padding: 28, textAlign: 'center' }}>
-                    Chưa có action log nào.
-                  </div>
-                ) : (
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      textAlign: 'left',
-                      fontSize: '0.82rem'
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  flexWrap: 'wrap',
+                  gap: 10,
+                  marginBottom: 16
+                }}>
+                  <div>
+                    <h3 style={{
+                      margin: 0,
+                      fontSize: '1.05rem',
+                      fontWeight: 800,
+                      color: '#1e293b'
                     }}>
-                      <thead>
-                        <tr>
-                          <th>Thời gian</th>
-                          <th>Người thực hiện</th>
-                          <th>Hành động</th>
-                          <th>Đối tượng</th>
-                          <th>Mã đối tượng</th>
-                          <th>IP</th>
-                        </tr>
-                      </thead>
+                      Action Logs
+                    </h3>
 
-                      <tbody>
-                        {actionLogs.map(log => (
-                          <tr key={log.id}>
-                            <td>
+                    <p style={{
+                      margin: '5px 0 0',
+                      color: '#64748b',
+                      fontSize: '0.84rem'
+                    }}>
+                      Tổng số bản ghi: <strong>{actionLogTotalElements}</strong>
+                    </p>
+                  </div>
+
+                  <span style={{
+                    padding: '5px 10px',
+                    borderRadius: 20,
+                    background: '#f5f3ff',
+                    color: '#7c3aed',
+                    fontSize: '0.78rem',
+                    fontWeight: 700
+                  }}>
+                    {PAGE_SIZE} bản ghi / trang
+                  </span>
+                </div>
+
+                <div style={TABLE_STYLES.wrapper}>
+                  <table style={{
+                    ...TABLE_STYLES.table,
+                    minWidth: 950
+                  }}>
+                    <thead>
+                      <tr>
+                        <th style={TABLE_STYLES.headerCell}>Thời gian</th>
+                        <th style={TABLE_STYLES.headerCell}>Người thực hiện</th>
+                        <th style={TABLE_STYLES.headerCell}>Hành động</th>
+                        <th style={TABLE_STYLES.headerCell}>Đối tượng</th>
+                        <th style={TABLE_STYLES.headerCell}>Mã đối tượng</th>
+                        <th style={TABLE_STYLES.headerCell}>Địa chỉ IP</th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      {actionLogLoading ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            style={{
+                              ...TABLE_STYLES.cell,
+                              textAlign: 'center',
+                              padding: 32
+                            }}
+                          >
+                            <Loader2
+                              size={20}
+                              className="animate-spin"
+                              style={{ display: 'inline-block', verticalAlign: 'middle' }}
+                            />
+                            <span style={{ marginLeft: 8 }}>Đang tải nhật ký...</span>
+                          </td>
+                        </tr>
+                      ) : actionLogs.length === 0 ? (
+                        <tr>
+                          <td
+                            colSpan={6}
+                            style={{
+                              ...TABLE_STYLES.cell,
+                              textAlign: 'center',
+                              padding: 36,
+                              color: '#94a3b8'
+                            }}
+                          >
+                            Chưa có nhật ký hoạt động nào.
+                          </td>
+                        </tr>
+                      ) : (
+                        actionLogs.map((log, index) => (
+                          <tr
+                            key={log.id}
+                            style={{
+                              background: index % 2 === 0 ? '#ffffff' : '#f8fafc'
+                            }}
+                          >
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              whiteSpace: 'nowrap'
+                            }}>
                               {log.createdAt
                                 ? new Date(log.createdAt).toLocaleString('vi-VN')
                                 : '—'}
                             </td>
 
-                            <td>
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontWeight: 600
+                            }}>
                               {log.userDisplayName || log.userId || '—'}
                             </td>
 
-                            <td>{log.action || '—'}</td>
+                            <td style={TABLE_STYLES.cell}>
+                              <span style={{
+                                display: 'inline-block',
+                                padding: '4px 9px',
+                                borderRadius: 6,
+                                background: '#eff6ff',
+                                color: '#2563eb',
+                                fontWeight: 700,
+                                fontSize: '0.76rem',
+                                whiteSpace: 'nowrap'
+                              }}>
+                                {log.action || '—'}
+                              </span>
+                            </td>
 
-                            <td>{log.targetType || '—'}</td>
+                            <td style={TABLE_STYLES.cell}>
+                              {log.targetType || '—'}
+                            </td>
 
-                            <td>{log.targetId || '—'}</td>
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              fontSize: '0.8rem',
+                              maxWidth: 220,
+                              overflowWrap: 'anywhere'
+                            }}>
+                              {log.targetId || '—'}
+                            </td>
 
-                            <td>{log.ipAddress || '—'}</td>
+                            <td style={{
+                              ...TABLE_STYLES.cell,
+                              fontFamily: 'monospace',
+                              whiteSpace: 'nowrap'
+                            }}>
+                              {log.ipAddress || '—'}
+                            </td>
                           </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-                {/* ACTION LOG PAGINATION */}
                 <Pagination
                   page={actionLogPage}
                   totalPages={actionLogTotalPages}
@@ -1858,12 +2210,9 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                   onPageChange={fetchActionLogs}
                   loading={actionLogLoading}
                 />
-
               </section>
-
             </div>
           )}
-
 
 
           {/* TAB 6: KIỂM DUYỆT DIỄN ĐÀN */}
