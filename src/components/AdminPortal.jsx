@@ -30,6 +30,151 @@ import {
 } from 'lucide-react';
 import { adminApi, articleApi } from '../services/api';
 
+
+const PAGE_SIZE = 10;
+
+function Pagination({
+  page = 0,
+  totalPages = 0,
+  totalElements = 0,
+  size = PAGE_SIZE,
+  onPageChange,
+  loading = false,
+}) {
+  if (totalPages <= 1) return null;
+
+  const visibleCount = Math.min(5, totalPages);
+  const start = Math.max(
+    0,
+    Math.min(page - 2, totalPages - visibleCount)
+  );
+
+  const pages = Array.from(
+    { length: visibleCount },
+    (_, index) => start + index
+  );
+
+  const buttonStyle = (active = false) => ({
+    minWidth: 34,
+    height: 34,
+    padding: '0 10px',
+    borderRadius: 6,
+    border: active ? '1px solid #7c3aed' : '1px solid #cbd5e1',
+    background: active ? '#7c3aed' : '#ffffff',
+    color: active ? '#ffffff' : '#334155',
+    fontWeight: active ? 700 : 500,
+    cursor: loading ? 'not-allowed' : 'pointer',
+    opacity: loading ? 0.6 : 1,
+  });
+
+  return (
+    <div style={{
+      display: 'flex',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      flexWrap: 'wrap',
+      gap: 12,
+      marginTop: 16,
+      padding: '12px 16px',
+      background: '#ffffff',
+      border: '1px solid #e2e8f0',
+      borderRadius: 8,
+    }}>
+      <span style={{ fontSize: '0.84rem', color: '#64748b' }}>
+        Trang <strong>{page + 1}</strong> / {totalPages}
+        {' · '}
+        Tổng <strong>{totalElements}</strong> bản ghi
+      </span>
+
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        gap: 6,
+      }}>
+        <button
+          type="button"
+          disabled={loading || page === 0}
+          onClick={() => onPageChange(0)}
+          style={buttonStyle()}
+          title="Trang đầu"
+        >
+          «
+        </button>
+
+        <button
+          type="button"
+          disabled={loading || page === 0}
+          onClick={() => onPageChange(page - 1)}
+          style={buttonStyle()}
+        >
+          Trước
+        </button>
+
+        {start > 0 && (
+          <>
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => onPageChange(0)}
+              style={buttonStyle()}
+            >
+              1
+            </button>
+            {start > 1 && <span style={{ color: '#94a3b8' }}>...</span>}
+          </>
+        )}
+
+        {pages.map((pageNumber) => (
+          <button
+            key={pageNumber}
+            type="button"
+            disabled={loading}
+            onClick={() => onPageChange(pageNumber)}
+            style={buttonStyle(pageNumber === page)}
+          >
+            {pageNumber + 1}
+          </button>
+        ))}
+
+        {start + visibleCount < totalPages && (
+          <>
+            {start + visibleCount < totalPages - 1 && (
+              <span style={{ color: '#94a3b8' }}>...</span>
+            )}
+            <button
+              type="button"
+              disabled={loading}
+              onClick={() => onPageChange(totalPages - 1)}
+              style={buttonStyle()}
+            >
+              {totalPages}
+            </button>
+          </>
+        )}
+
+        <button
+          type="button"
+          disabled={loading || page >= totalPages - 1}
+          onClick={() => onPageChange(page + 1)}
+          style={buttonStyle()}
+        >
+          Sau
+        </button>
+
+        <button
+          type="button"
+          disabled={loading || page >= totalPages - 1}
+          onClick={() => onPageChange(totalPages - 1)}
+          style={buttonStyle()}
+          title="Trang cuối"
+        >
+          »
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function AdminPortal({ currentUser, onBackToClient, onLogout, onDeleteArticle }) {
   const [activeTab, setActiveTab] = useState('overview');
   const [users, setUsers] = useState([]);
@@ -41,6 +186,16 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
   const [actionLogs, setActionLogs] = useState([]);
   const [actionLogFilter, setActionLogFilter] = useState('');
   const [actionLogLoading, setActionLogLoading] = useState(false);
+
+  const [actionLogPage, setActionLogPage] = useState(0);
+  const [actionLogTotalPages, setActionLogTotalPages] = useState(0);
+  const [actionLogTotalElements, setActionLogTotalElements] = useState(0);
+
+  const [transactions, setTransactions] = useState([]);
+  const [transactionPage, setTransactionPage] = useState(0);
+  const [transactionTotalPages, setTransactionTotalPages] = useState(0);
+  const [transactionTotalElements, setTransactionTotalElements] = useState(0);
+  const [transactionLoading, setTransactionLoading] = useState(false);
 
   const [loading, setLoading] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
@@ -81,13 +236,12 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
       } catch (e) {
         setWithdrawals([]);
       }
+      
+      await Promise.all([
+        fetchActionLogs(0),
+        fetchTransactions(0)
+      ]);
 
-      try {
-        const logsRes = await adminApi.getActionLogs();
-        if (logsRes && Array.isArray(logsRes)) setActionLogs(logsRes);
-      } catch (e) {
-        setActionLogs([]);
-      }
     } catch (err) {
       console.warn('Lỗi tải dữ liệu admin portal:', err);
     } finally {
@@ -105,21 +259,58 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
     setTimeout(() => setNotification(''), 3500);
   };
 
-  // Tải nhật ký kiểm toán hệ thống
-  const fetchActionLogs = async (params = {}) => {
+  
+  // Tải nhật ký kiểm toán theo từng trang
+  const fetchActionLogs = async (page = 0) => {
     setActionLogLoading(true);
+
     try {
-      const logs = await adminApi.getActionLogs(params);
-      if (logs && Array.isArray(logs)) {
-        setActionLogs(logs);
-      } else {
-        setActionLogs([]);
-      }
+      const result = await adminApi.getActionLogsPage({
+        page,
+        size: 10
+      });
+
+      setActionLogs(result?.content || []);
+      setActionLogPage(result?.number ?? page);
+      setActionLogTotalPages(result?.totalPages ?? 0);
+      setActionLogTotalElements(result?.totalElements ?? 0);
+
     } catch (err) {
       console.warn('Lỗi tải Action Logs:', err);
+
       setActionLogs([]);
+      setActionLogTotalPages(0);
+      setActionLogTotalElements(0);
+
     } finally {
       setActionLogLoading(false);
+    }
+  };
+
+  // Tải Payment Transactions theo từng trang
+  const fetchTransactions = async (page = 0) => {
+    setTransactionLoading(true);
+
+    try {
+      const result = await adminApi.getTransactions({
+        page,
+        size: 10
+      });
+
+      setTransactions(result?.content || []);
+      setTransactionPage(result?.number ?? page);
+      setTransactionTotalPages(result?.totalPages ?? 0);
+      setTransactionTotalElements(result?.totalElements ?? 0);
+
+    } catch (err) {
+      console.warn('Lỗi tải Payment Transactions:', err);
+
+      setTransactions([]);
+      setTransactionTotalPages(0);
+      setTransactionTotalElements(0);
+
+    } finally {
+      setTransactionLoading(false);
     }
   };
 
@@ -541,7 +732,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
           </div>
 
           <button
-            onClick={() => { setActiveTab('action-logs'); setSearchTerm(''); fetchActionLogs(); }}
+            onClick={() => { setActiveTab('action-logs'); setSearchTerm(''); fetchActionLogs(0); fetchTransactions(0);}}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -1434,6 +1625,246 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
               )}
             </div>
           )}
+
+          
+          {/* TAB: KIỂM TOÁN & PAYMENT TRANSACTIONS */}
+          {activeTab === 'action-logs' && (
+            <div>
+
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+                gap: 12,
+                marginBottom: 20
+              }}>
+                <div>
+                  <h2 style={{
+                    fontSize: '1.35rem',
+                    fontWeight: 800,
+                    margin: 0,
+                    color: '#0f172a'
+                  }}>
+                    Kiểm toán hệ thống & Giao dịch thanh toán
+                  </h2>
+
+                  <p style={{
+                    margin: '4px 0 0',
+                    color: '#64748b',
+                    fontSize: '0.88rem'
+                  }}>
+                    Theo dõi giao dịch ví, ký quỹ, giải ngân và nhật ký thao tác.
+                  </p>
+                </div>
+
+                <button
+                  onClick={() => {
+                    fetchTransactions(0);
+                    fetchActionLogs(0);
+                  }}
+                >
+                  <RefreshCw size={14} /> Làm mới
+                </button>
+              </div>
+
+              {/* PAYMENT TRANSACTIONS */}
+              <section style={{
+                background: '#fff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 10,
+                padding: 18,
+                marginBottom: 24
+              }}>
+
+                <h3>Payment Transactions</h3>
+
+                <p>
+                  Tổng số giao dịch: {transactionTotalElements}
+                </p>
+
+                <p>
+                  Trang {transactionTotalPages ? transactionPage + 1 : 0}
+                  /{transactionTotalPages}
+                </p>
+
+                {transactionLoading ? (
+                  <div style={{ padding: 24, textAlign: 'center' }}>
+                    <Loader2 className="animate-spin" />
+                    Đang tải giao dịch...
+                  </div>
+                ) : transactions.length === 0 ? (
+                  <div style={{ padding: 28, textAlign: 'center' }}>
+                    Chưa có payment transaction nào.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                      fontSize: '0.82rem'
+                    }}>
+                      <thead>
+                        <tr>
+                          <th>Thời gian</th>
+                          <th>Mã giao dịch</th>
+                          <th>Loại</th>
+                          <th>Booking / Enrollment</th>
+                          <th>Số tiền</th>
+                          <th>Ví nguồn / Ví đích</th>
+                          <th>Ghi chú</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {transactions.map(tx => (
+                          <tr key={tx.id}>
+                            <td>
+                              {tx.createdAt
+                                ? new Date(tx.createdAt).toLocaleString('vi-VN')
+                                : '—'}
+                            </td>
+
+                            <td>{tx.id?.slice(0, 10) || '—'}</td>
+
+                            <td style={{
+                              fontWeight: 700,
+                              color: tx.type === 'ESCROW_RELEASE'
+                                ? '#15803d'
+                                : tx.type === 'ESCROW_HOLD'
+                                  ? '#b45309'
+                                  : '#334155'
+                            }}>
+                              {tx.type || '—'}
+                            </td>
+
+                            <td>
+                              {tx.bookingId || tx.enrollmentId || '—'}
+                            </td>
+
+                            <td style={{
+                              textAlign: 'right',
+                              fontWeight: 700
+                            }}>
+                              {formatVND(tx.amount)}
+                            </td>
+
+                            <td>
+                              <div>{tx.sourceWalletId || '—'}</div>
+                              <div>→ {tx.destinationWalletId || 'Escrow holding'}</div>
+                            </td>
+
+                            <td>{tx.note || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* TRANSACTION PAGINATION */}
+                <Pagination
+                  page={transactionPage}
+                  totalPages={transactionTotalPages}
+                  totalElements={transactionTotalElements}
+                  size={PAGE_SIZE}
+                  onPageChange={fetchTransactions}
+                  loading={transactionLoading}
+                />
+
+              </section>
+
+              {/* ACTION LOGS */}
+              <section style={{
+                background: '#fff',
+                border: '1px solid #e2e8f0',
+                borderRadius: 10,
+                padding: 18
+              }}>
+
+                <h3>Nhật ký thao tác (Action Logs)</h3>
+
+                <p>
+                  Tổng số bản ghi: {actionLogTotalElements}
+                </p>
+
+                <p>
+                  Trang {actionLogTotalPages ? actionLogPage + 1 : 0}
+                  /{actionLogTotalPages}
+                </p>
+
+                {actionLogLoading ? (
+                  <div style={{ padding: 24, textAlign: 'center' }}>
+                    <Loader2 className="animate-spin" />
+                    Đang tải nhật ký...
+                  </div>
+                ) : actionLogs.length === 0 ? (
+                  <div style={{ padding: 28, textAlign: 'center' }}>
+                    Chưa có action log nào.
+                  </div>
+                ) : (
+                  <div style={{ overflowX: 'auto' }}>
+                    <table style={{
+                      width: '100%',
+                      borderCollapse: 'collapse',
+                      textAlign: 'left',
+                      fontSize: '0.82rem'
+                    }}>
+                      <thead>
+                        <tr>
+                          <th>Thời gian</th>
+                          <th>Người thực hiện</th>
+                          <th>Hành động</th>
+                          <th>Đối tượng</th>
+                          <th>Mã đối tượng</th>
+                          <th>IP</th>
+                        </tr>
+                      </thead>
+
+                      <tbody>
+                        {actionLogs.map(log => (
+                          <tr key={log.id}>
+                            <td>
+                              {log.createdAt
+                                ? new Date(log.createdAt).toLocaleString('vi-VN')
+                                : '—'}
+                            </td>
+
+                            <td>
+                              {log.userDisplayName || log.userId || '—'}
+                            </td>
+
+                            <td>{log.action || '—'}</td>
+
+                            <td>{log.targetType || '—'}</td>
+
+                            <td>{log.targetId || '—'}</td>
+
+                            <td>{log.ipAddress || '—'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+
+                {/* ACTION LOG PAGINATION */}
+                <Pagination
+                  page={actionLogPage}
+                  totalPages={actionLogTotalPages}
+                  totalElements={actionLogTotalElements}
+                  size={PAGE_SIZE}
+                  onPageChange={fetchActionLogs}
+                  loading={actionLogLoading}
+                />
+
+              </section>
+
+            </div>
+          )}
+
+
 
           {/* TAB 6: KIỂM DUYỆT DIỄN ĐÀN */}
           {activeTab === 'articles' && (

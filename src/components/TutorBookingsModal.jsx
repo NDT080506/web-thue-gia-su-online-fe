@@ -455,7 +455,7 @@ export default function TutorBookingsModal({
                         )}
 
                         {/* Nút Khiếu nại */}
-                        {!isTutor && booking.status !== 'CANCELLED' && (
+                        {!isTutor && isPaid && (
                           <button
                             type="button"
                             className="btn btn-outline"

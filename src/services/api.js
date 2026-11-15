@@ -94,7 +94,7 @@ function extractPageContent(res) {
 /**
  * Helper gắn tham số phân trang mặc định cho các API dùng Pageable trên BE Optimize01
  */
-function withPagination(endpoint, page = 0, size = 100) {
+function withPagination(endpoint, page = 0, size = 10) {
   const separator = endpoint.includes('?') ? '&' : '?';
   return `${endpoint}${separator}page=${page}&size=${size}`;
 }
@@ -176,7 +176,7 @@ clearSession: () => {
 /* ==================== 2. ARTICLES & COMMENTS ==================== */
 export const articleApi = {
   // GET /articles (Public, trả về Page<ArticleResponse>)
-  getArticles: async (page = 0, size = 100) => {
+  getArticles: async (page = 0, size = 10) => {
     const res = await request(withPagination('/articles', page, size));
     return extractPageContent(res);
   },
@@ -187,7 +187,7 @@ export const articleApi = {
   },
 
   // GET /articles/my-articles (trả về Page<ArticleResponse>)
-  getMyArticles: async (page = 0, size = 100) => {
+  getMyArticles: async (page = 0, size = 10) => {
     const res = await request(withPagination('/articles/my-articles', page, size));
     return extractPageContent(res);
   },
@@ -208,7 +208,7 @@ export const articleApi = {
   },
 
   // GET /article-comments/article/:articleId (trả về Page<ArticleCommentResponse>)
-  getComments: async (articleId, page = 0, size = 100) => {
+  getComments: async (articleId, page = 0, size = 10) => {
     const res = await request(withPagination(`/article-comments/article/${articleId}`, page, size));
     return extractPageContent(res);
   },
@@ -225,7 +225,7 @@ export const articleApi = {
 /* ==================== 3. COURSES & ENROLLMENT ==================== */
 export const courseApi = {
   // Lấy danh sách khóa học
-  getCourses: async (page = 0, size = 100) => {
+  getCourses: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/courses', page, size)
     );
@@ -238,7 +238,7 @@ export const courseApi = {
   },
 
   // Lấy khóa học của gia sư
-  getCoursesByTutor: async (tutorId, page = 0, size = 100) => {
+  getCoursesByTutor: async (tutorId, page = 0, size = 10) => {
     const res = await request(
       withPagination(`/courses/tutor/${tutorId}`, page, size)
     );
@@ -274,7 +274,7 @@ export const courseApi = {
   },
 
   // Lấy danh sách bài học
-  getLessons: async (courseId, page = 0, size = 100) => {
+  getLessons: async (courseId, page = 0, size = 10) => {
     const res = await request(
       withPagination(`/lessons/course/${courseId}`, page, size)
     );
@@ -290,7 +290,7 @@ export const courseApi = {
   },
 
   // Lấy danh sách ghi danh của học viên hiện tại
-  getMyEnrollments: async (page = 0, size = 100) => {
+  getMyEnrollments: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/course-enrollments/me', page, size)
     );
@@ -300,18 +300,38 @@ export const courseApi = {
   // Lấy ghi danh của học viên theo khóa học hiện tại
   getMyEnrollmentByCourse: async (courseId) => {
     try {
-      const enrollments = await courseApi.getMyEnrollments(0, 100);
+      let page = 0;
+      let totalPages = 1;
 
-      return enrollments.find(
-        (e) => e.courseId === courseId
-      ) || null;
+      while (page < totalPages) {
+        const result = await request(
+          withPagination('/course-enrollments/me', page, 10)
+        );
+
+        const enrollments = extractPageContent(result);
+
+        const enrollment = enrollments.find(
+          item => item.courseId === courseId
+        );
+
+        if (enrollment) {
+          return enrollment;
+        }
+
+        totalPages = result?.totalPages ?? 1;
+        page++;
+      }
+
+      return null;
+
     } catch {
       return null;
     }
   },
 
+
   // Gia sư lấy danh sách học viên ghi danh khóa học
-  getEnrollmentsByCourse: async (courseId, page = 0, size = 100) => {
+  getEnrollmentsByCourse: async (courseId, page = 0, size = 10) => {
     const res = await request(
       withPagination(
         `/course-enrollments/course/${courseId}`,
@@ -357,7 +377,7 @@ export const conversationApi = {
   },
 
   // GET /conversations/me (Lấy danh sách cuộc trò chuyện của tôi - Page<ConversationResponse>)
-  getMyConversations: async (page = 0, size = 100) => {
+  getMyConversations: async (page = 0, size = 10) => {
     const res = await request(withPagination('/conversations/me', page, size));
     return extractPageContent(res);
   },
@@ -402,7 +422,7 @@ export const messageApi = {
 /* ==================== 5. BROKERAGE PACKAGES ==================== */
 export const brokeragePackageApi = {
   // Lấy danh sách gói theo gia sư
-  getPackagesByTutor: async (tutorId, page = 0, size = 100) => {
+  getPackagesByTutor: async (tutorId, page = 0, size = 10) => {
     const res = await request(
       withPagination(
         `/brokerage-packages/tutor/${tutorId}`,
@@ -415,7 +435,7 @@ export const brokeragePackageApi = {
   },
 
   // Lấy tất cả gói (chỉ Admin được phép)
-  getAllActivePackages: async (page = 0, size = 100) => {
+  getAllActivePackages: async (page = 0, size = 10) => {
     const res = await request(
       withPagination(
         '/brokerage-packages/admin/get-all',
@@ -476,13 +496,13 @@ export const bookingApi = {
   },
 
   // GET /bookings/me (Lấy các đơn đặt lịch của học sinh hiện tại - Page<BookingResponse>)
-  getMyBookings: async (page = 0, size = 100) => {
+  getMyBookings: async (page = 0, size = 10) => {
     const res = await request(withPagination('/bookings/me', page, size));
     return extractPageContent(res);
   },
 
   // GET /bookings/tutor (Lấy các đơn học viên đặt lịch với gia sư hiện tại)
-  getTutorBookings: async (page = 0, size = 100) => {
+  getTutorBookings: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/bookings/tutor', page, size)
     );
@@ -522,7 +542,7 @@ export const checkBackendHealth = async () => {
 /* ==================== 8. CART ==================== */
 export const cartApi = {
   // GET /cart (Lấy danh sách khóa học trong giỏ hàng - Page<CartItemResponse>)
-  getCart: async (page = 0, size = 100) => {
+  getCart: async (page = 0, size = 10) => {
     const res = await request(withPagination('/cart', page, size));
     return extractPageContent(res);
   },
@@ -560,7 +580,7 @@ export const cartApi = {
 /* ==================== 9. WISHLIST ==================== */
 export const wishlistApi = {
   // GET /wishlist (Lấy danh sách yêu thích - Page<WishlistItemResponse>)
-  getWishlist: async (page = 0, size = 100) => {
+  getWishlist: async (page = 0, size = 10) => {
     const res = await request(withPagination('/wishlist', page, size));
     return extractPageContent(res);
   },
@@ -582,8 +602,24 @@ export const wishlistApi = {
 
 /* ==================== 10. ADMIN MANAGEMENT ==================== */
 export const adminApi = {
+
+  getActionLogsPage: async (params = {}) => {
+    const query = new URLSearchParams({
+      page: params.page ?? 0,
+      size: params.size ?? 10,
+    });
+
+    return await request(`/admin/action-logs?${query.toString()}`);
+  },
+
+  getTransactionsPage: async (page = 0, size = 10) => {
+    return await request(
+      withPagination('/transactions', page, size)
+    );
+  },
+
   // GET /users/admin (Lấy danh sách tất cả người dùng - Page<UserResponse>)
-  getAllUsers: async (page = 0, size = 100) => {
+  getAllUsers: async (page = 0, size = 10) => {
     const res = await request(withPagination('/users/admin', page, size));
     return extractPageContent(res);
   },
@@ -596,7 +632,7 @@ export const adminApi = {
     });
   },
 
-  getTutorApplications: async (page = 0, size = 100) => {
+  getTutorApplications: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/tutor-applications/admin', page, size)
     );
@@ -618,13 +654,13 @@ export const adminApi = {
   },
 
   // GET /brokerage-packages/admin/get-all (Lấy tất cả gói môi giới - Page<BrokeragePackageResponse>)
-  getAllPackages: async (page = 0, size = 100) => {
+  getAllPackages: async (page = 0, size = 10) => {
     const res = await request(withPagination('/brokerage-packages/admin/get-all', page, size));
     return extractPageContent(res);
   },
 
   // GET /admin/disputes (Lấy danh sách khiếu nại tranh chấp cho Admin - Page<DisputeResponse>)
-  getDisputes: async (status, page = 0, size = 100) => {
+  getDisputes: async (status, page = 0, size = 10) => {
     const base = status ? `/admin/disputes?status=${status}` : '/admin/disputes';
     const res = await request(withPagination(base, page, size));
     return extractPageContent(res);
@@ -652,7 +688,7 @@ export const adminApi = {
   // GET /admin/action-logs (Lấy nhật ký kiểm toán hệ thống - Page<ActionLogResponse>)
   getActionLogs: async (params = {}) => {
     const query = new URLSearchParams();
-    const merged = { page: 0, size: 100, ...params };
+    const merged = { page: 0, size: 10, ...params };
     Object.entries(merged).forEach(([key, val]) => {
       if (val !== undefined && val !== null && val !== '') {
         query.append(key, val);
@@ -663,13 +699,61 @@ export const adminApi = {
     return extractPageContent(res);
   },
 
+
+  // Lấy danh sách giao dịch thanh toán cho Admin
+  getTransactions: async (params = {}) => {
+    const query = new URLSearchParams();
+
+    const merged = {
+      page: 0,
+      size: 10,
+      ...params
+    };
+
+    Object.entries(merged).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, val);
+      }
+    });
+
+    const queryString = query.toString();
+
+    return await request(
+      `/transactions${queryString ? `?${queryString}` : ''}`
+    );
+  },
+
+  // Lấy đầy đủ metadata phân trang của Action Logs
+  getActionLogsPage: async (params = {}) => {
+    const query = new URLSearchParams();
+
+    const merged = {
+      page: 0,
+      size: 10,
+      ...params
+    };
+
+    Object.entries(merged).forEach(([key, val]) => {
+      if (val !== undefined && val !== null && val !== '') {
+        query.append(key, val);
+      }
+    });
+
+    const queryString = query.toString();
+
+    return await request(
+      `/admin/action-logs${queryString ? `?${queryString}` : ''}`
+    );
+  },
+
+
   // GET /admin/action-logs/:id
   getActionLogById: async (id) => {
     return await request(`/admin/action-logs/${id}`);
   },
 
   // GET /admin/withdrawals (Lấy danh sách yêu cầu rút tiền - Page<WithdrawalResponse>)
-  getWithdrawals: async (page = 0, size = 100) => {
+  getWithdrawals: async (page = 0, size = 10) => {
     const res = await request(withPagination('/admin/withdrawals', page, size));
     return extractPageContent(res);
   },
@@ -766,7 +850,7 @@ export const paymentApi = {
 
 /* ==================== 14. TUTOR APPLICATION API ==================== */
 export const tutorApi = {
-  getTutors: async (page = 0, size = 100) => {
+  getTutors: async (page = 0, size = 10) => {
     // Endpoint này yêu cầu đăng nhập
     if (!localStorage.getItem('token')) {
       return [];
@@ -824,7 +908,7 @@ export const disputeApi = {
   },
 
   // GET /disputes/me (Danh sách khiếu nại của học sinh hiện tại - Page<DisputeResponse>)
-  getMyDisputes: async (page = 0, size = 100) => {
+  getMyDisputes: async (page = 0, size = 10) => {
     const res = await request(withPagination('/disputes/me', page, size));
     return extractPageContent(res);
   },
@@ -857,7 +941,7 @@ export const tutorProfileApi = {
     });
   },
 
-  getAllProfiles: async (page = 0, size = 100) => {
+  getAllProfiles: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/tutor-profiles/admin', page, size)
     );
@@ -878,7 +962,7 @@ export const withdrawalApi = {
     });
   },
 
-  getMyWithdrawals: async (page = 0, size = 100) => {
+  getMyWithdrawals: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/withdrawals/me', page, size)
     );
@@ -903,7 +987,7 @@ export const reviewApi = {
     });
   },
 
-  getTutorReviews: async (page = 0, size = 100) => {
+  getTutorReviews: async (page = 0, size = 10) => {
     const res = await request(
       withPagination('/reviews/tutor', page, size)
     );
@@ -939,7 +1023,7 @@ export const lessonApi = {
     });
   },
 
-  getLessons: async (courseId, page = 0, size = 100) => {
+  getLessons: async (courseId, page = 0, size = 10) => {
     const res = await request(
       withPagination(`/lessons/course/${courseId}`, page, size)
     );

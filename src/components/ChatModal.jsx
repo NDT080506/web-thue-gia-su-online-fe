@@ -59,6 +59,8 @@ export default function ChatModal({
     async function initChat() {
       setLoading(true);
       setErrorMsg('');
+      setConversation(null);
+      setMessages([]);
       try {
         let conv = null;
 
@@ -66,16 +68,17 @@ export default function ChatModal({
           conv = targetConversation;
         } else if (currentUser.role === 'STUDENT' && tutor) {
           // Nếu là học viên nhắn với gia sư:
-          conv = await conversationApi.createDirect(tutor.id);
-        } else if (currentUser.role === 'TUTOR') {
-          // Gia sư lấy các cuộc trò chuyện của mình
+          conv = await conversationApi.createDirect(tutor.id);   
+        } else if (
+          currentUser.role === 'TUTOR' &&
+          targetStudent?.id
+        ) {
+          // Gia sư chỉ được mở conversation đã được học viên khởi tạo.
           const myConvs = await conversationApi.getMyConversations();
-          if (targetStudent) {
-            conv = myConvs.find(c => c.studentId === targetStudent.id);
-          }
-          if (!conv && myConvs.length > 0) {
-            conv = myConvs[0];
-          }
+
+          conv = myConvs.find(
+            c => c.studentId === targetStudent.id
+          ) || null;
         }
 
         if (!isMounted) return;
@@ -106,7 +109,13 @@ export default function ChatModal({
             }
           }, 1500);
         } else {
-          setErrorMsg('Chưa thể kết nối phiên hội thoại với người dùng này.');
+          setErrorMsg(
+            currentUser.role === 'TUTOR'
+              ? targetStudent
+                ? 'Học viên này chưa bắt đầu cuộc trò chuyện. Hội thoại chỉ được tạo khi học viên nhấn Nhắn tin với gia sư.'
+                : 'Hãy chọn một học viên đã chủ động nhắn tin cho bạn.'
+              : 'Chưa thể kết nối phiên hội thoại với người dùng này.'
+          );
         }
       } catch (err) {
         console.warn('Lỗi kết nối chat:', err);
@@ -122,7 +131,7 @@ export default function ChatModal({
       isMounted = false;
       if (pollInterval) clearInterval(pollInterval);
     };
-  }, [isOpen, tutor, targetStudent, currentUser]);
+  }, [isOpen, tutor, targetStudent, targetConversation, currentUser]);
 
   if (!isOpen) return null;
 

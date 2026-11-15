@@ -282,6 +282,63 @@ export default function TutorPortal({
     }
   };
 
+
+  // Gia sư xác nhận hoàn thành khóa học và giải ngân tiền
+  const handleCompleteEnrollment = async (enrollment) => {
+    const courseId = viewingEnrollmentsCourse?.id;
+
+    if (!courseId || !enrollment?.id || enrollment.status !== 'ACTIVE') {
+      return;
+    }
+
+    if (!window.confirm(
+      'Xác nhận khóa học đã hoàn thành? Tiền sẽ được giải ngân vào ví gia sư.'
+    )) {
+      return;
+    }
+
+    setProcessingId(enrollment.id);
+
+    try {
+      await courseApi.completeEnrollment(enrollment.id);
+
+      const updatedEnrollments =
+        await courseApi.getEnrollmentsByCourse(courseId, 0, 10);
+
+      const updated = updatedEnrollments || [];
+
+      setEnrollments(prev => ({
+        ...prev,
+        [courseId]: updated
+      }));
+
+      setViewingEnrollmentsCourse(prev =>
+        prev?.id === courseId
+          ? { ...prev, students: updated }
+          : prev
+      );
+
+      showNotice(
+        'Khóa học đã hoàn thành. Thu nhập đã được giải ngân vào ví!'
+      );
+
+      if (onWalletUpdated) {
+        await onWalletUpdated();
+      }
+
+    } catch (err) {
+      showNotice(
+        err.data?.message ||
+        err.message ||
+        'Không thể hoàn thành khóa học và giải ngân.',
+        true
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  };
+
+
   // ==================== CÁC HÀM XỬ LÝ GÓI MÔI GIỚI ====================
   const handleOpenCreatePackage = () => {
     setEditingPackage(null);
@@ -2612,39 +2669,118 @@ export default function TutorPortal({
                     <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#64748b', fontSize: '0.78rem', textTransform: 'uppercase' }}>
                       <th style={{ padding: '8px 10px' }}>Học viên</th>
                       <th style={{ padding: '8px 10px' }}>Ngày đăng ký</th>
+                      <th style={{ padding: '8px 10px' }}>Trạng thái</th>
                       <th style={{ padding: '8px 10px', textAlign: 'right' }}>Thao tác</th>
                     </tr>
                   </thead>
+                  
                   <tbody>
                     {viewingEnrollmentsCourse.students.map((e, idx) => (
                       <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+
                         <td style={{ padding: '12px 10px' }}>
-                          <strong style={{ color: '#1e293b' }}>{e.studentName || 'Học viên #' + (e.studentId?.substring(0, 6) || idx + 1)}</strong>
-                          <span style={{ fontSize: '0.76rem', color: '#64748b', display: 'block' }}>{e.studentEmail}</span>
+                          <strong style={{ color: '#1e293b' }}>
+                            {e.studentName || 'Học viên #' + (e.studentId?.substring(0, 6) || idx + 1)}
+                          </strong>
+
+                          <span style={{
+                            fontSize: '0.76rem',
+                            color: '#64748b',
+                            display: 'block'
+                          }}>
+                            {e.studentEmail}
+                          </span>
                         </td>
+
                         <td style={{ padding: '12px 10px', color: '#64748b' }}>
-                          {e.enrolledAt ? new Date(e.enrolledAt).toLocaleDateString('vi-VN') : 'Gần đây'}
+                          {e.createdAt
+                            ? new Date(e.createdAt).toLocaleDateString('vi-VN')
+                            : 'Gần đây'}
                         </td>
+
+                        <td style={{ padding: '12px 10px' }}>
+                          <span style={{
+                            display: 'inline-block',
+                            padding: '3px 8px',
+                            borderRadius: 6,
+                            fontSize: '0.76rem',
+                            fontWeight: 700,
+                            background:
+                              e.status === 'COMPLETED' ? '#dcfce7' :
+                              e.status === 'ACTIVE' ? '#dbeafe' : '#f1f5f9',
+                            color:
+                              e.status === 'COMPLETED' ? '#166534' :
+                              e.status === 'ACTIVE' ? '#1d4ed8' : '#475569'
+                          }}>
+                            {e.status === 'COMPLETED'
+                              ? 'Đã hoàn thành / Đã giải ngân'
+                              : e.status === 'ACTIVE'
+                                ? 'Đã thanh toán / Đang giữ tiền'
+                                : e.status === 'PENDING'
+                                  ? 'Chờ thanh toán'
+                                  : e.status || 'Không xác định'}
+                          </span>
+                        </td>
+
                         <td style={{ padding: '12px 10px', textAlign: 'right' }}>
-                          <button
-                            onClick={() => {
-                              setViewingEnrollmentsCourse(null);
-                              if (onOpenChat) onOpenChat({ id: e.studentId, displayName: e.studentName });
-                            }}
-                            style={{
-                              padding: '5px 12px',
-                              borderRadius: 6,
-                              border: '1px solid #cbd5e1',
-                              background: '#ffffff',
-                              color: '#334155',
-                              fontSize: '0.8rem',
-                              fontWeight: 600,
-                              cursor: 'pointer'
-                            }}
-                          >
-                            💬 Nhắn tin
-                          </button>
+                          <div style={{
+                            display: 'flex',
+                            justifyContent: 'flex-end',
+                            alignItems: 'center',
+                            flexWrap: 'wrap',
+                            gap: 6
+                          }}>
+
+                            {e.status === 'ACTIVE' &&
+                              Number(viewingEnrollmentsCourse.price) > 0 && (
+                                <button
+                                  onClick={() => handleCompleteEnrollment(e)}
+                                  disabled={processingId === e.id}
+                                  style={{
+                                    padding: '5px 10px',
+                                    borderRadius: 6,
+                                    border: '1px solid #15803d',
+                                    background: '#16a34a',
+                                    color: '#ffffff',
+                                    fontSize: '0.78rem',
+                                    fontWeight: 700,
+                                    cursor: 'pointer'
+                                  }}
+                                >
+                                  {processingId === e.id
+                                    ? 'Đang xử lý...'
+                                    : 'Hoàn thành & giải ngân'}
+                                </button>
+                            )}
+
+                            <button
+                              onClick={() => {
+                                setViewingEnrollmentsCourse(null);
+
+                                if (onOpenChat) {
+                                  onOpenChat({
+                                    id: e.studentId,
+                                    displayName: e.studentName
+                                  });
+                                }
+                              }}
+                              style={{
+                                padding: '5px 12px',
+                                borderRadius: 6,
+                                border: '1px solid #cbd5e1',
+                                background: '#ffffff',
+                                color: '#334155',
+                                fontSize: '0.8rem',
+                                fontWeight: 600,
+                                cursor: 'pointer'
+                              }}
+                            >
+                              💬 Nhắn tin
+                            </button>
+
+                          </div>
                         </td>
+
                       </tr>
                     ))}
                   </tbody>
