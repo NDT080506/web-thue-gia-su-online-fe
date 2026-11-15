@@ -187,16 +187,13 @@ export default function TutorPortal({
         setConversations(convRes.value || []);
       }
 
-      if (onWalletUpdated) {
-        onWalletUpdated();
-      }
     } catch (err) {
       console.warn('Lỗi khi tải dữ liệu Gia sư:', err);
       setErrorMsg('Không thể đồng bộ toàn bộ dữ liệu từ máy chủ. Vui lòng thử lại.');
     } finally {
       setLoading(false);
     }
-  }, [currentUser?.id, onWalletUpdated]);
+  }, [currentUser?.id]);
 
   useEffect(() => {
     loadAllTutorData();
