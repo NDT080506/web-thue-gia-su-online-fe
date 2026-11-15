@@ -16,51 +16,89 @@ export default function AuthModal({ isOpen, onClose, initialMode = 'login', onLo
   if (!isOpen) return null;
 
   const handleSubmit = async (e) => {
-    if (mode === 'login') {
-      const inputName = (displayName || email || '').trim();
+    e.preventDefault();
 
-      try {
-          const loginRes = await authApi.login(inputName, password);
+    if (loading) return;
 
-          const token = loginRes?.accessToken || loginRes?.token;
+    setLoading(true);
+    setErrorMessage('');
+    setSuccessMessage('');
 
-          if (!token) {
-              throw new Error('Backend không trả về access token.');
-          }
+    try {
+      // ==================== ĐĂNG NHẬP ====================
+      if (mode === 'login') {
+        const inputName = displayName.trim();
 
-          const userInfo = await authApi.getMyInfo();
+        const loginRes = await authApi.login(inputName, password);
 
-          if (!userInfo?.id) {
-              throw new Error('Không thể xác thực thông tin tài khoản.');
-          }
+        const token = loginRes?.accessToken || loginRes?.token;
 
-          const tokenRole = getRoleFromToken(token);
+        if (!token) {
+          throw new Error('Backend không trả về access token.');
+        }
 
-          if (tokenRole) {
-              userInfo.role = tokenRole;
-          }
+        const userInfo = await authApi.getMyInfo();
 
-          setSuccessMessage('Đăng nhập thành công!');
+        if (!userInfo?.id) {
+          throw new Error('Không thể xác thực thông tin tài khoản.');
+        }
 
-          if (onLoginSuccess) {
-              await onLoginSuccess(userInfo);
-          }
+        const tokenRole = getRoleFromToken(token);
 
-          setTimeout(() => onClose(), 800);
+        if (tokenRole) {
+          userInfo.role = tokenRole;
+        }
 
-      } catch (err) {
-          authApi.clearSession();
+        if (onLoginSuccess) {
+          await onLoginSuccess(userInfo);
+        }
 
-          if (err.status === 401 || err.status === 403) {
-              setErrorMessage('Tên đăng nhập hoặc mật khẩu không chính xác.');
-          } else {
-              setErrorMessage(
-                  err.message || 'Không thể kết nối đến máy chủ.'
-              );
-          }
+        setSuccessMessage('Đăng nhập thành công!');
+
+        setTimeout(() => {
+          onClose();
+        }, 800);
+
+        return;
       }
 
-      return;
+      // ==================== ĐĂNG KÝ ====================
+      if (mode === 'register') {
+        const registerData = {
+          displayName: displayName.trim(),
+          email: email.trim(),
+          password: password,
+          role: role
+        };
+
+        const registerRes = await authApi.register(registerData);
+
+        setSuccessMessage(
+          registerRes?.message || 'Đăng ký tài khoản thành công!'
+        );
+
+        setPassword('');
+        setMode('login');
+      }
+
+    } catch (err) {
+      console.error('Lỗi xác thực:', err);
+
+      if (mode === 'login') {
+        authApi.clearSession();
+      }
+
+      if (err?.status === 401 || err?.status === 403) {
+        setErrorMessage('Tên đăng nhập hoặc mật khẩu không chính xác.');
+      } else {
+        setErrorMessage(
+          err?.data?.message ||
+          err?.message ||
+          'Không thể kết nối đến máy chủ.'
+        );
+      }
+    } finally {
+      setLoading(false);
     }
   };
 

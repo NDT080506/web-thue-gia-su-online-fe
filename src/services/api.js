@@ -119,10 +119,15 @@ export const authApi = {
   },
 
   // POST /users (Register requires email, password, displayName, role)
-  register: async (userData) => {
+  egister: async (userData) => {
     return await request('/users', {
       method: 'POST',
-      body: JSON.stringify(userData),
+      body: JSON.stringify({
+        displayName: userData.displayName,
+        email: userData.email,
+        password: userData.password,
+        role: userData.role
+      }),
     });
   },
 
