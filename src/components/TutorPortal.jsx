@@ -2427,7 +2427,7 @@ export default function TutorPortal({
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                   <div>
                     <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.95rem' }}>Danh sách bài học</h4>
-                    <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Thêm video, lịch học trực tiếp và sắp xếp thứ tự bài học.</span>
+                    <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Video YouTube sẽ phát nhúng ngay trong nền tảng.</span>
                   </div>
                   <button
                     type="button"
@@ -2483,7 +2483,7 @@ export default function TutorPortal({
                         />
                         <input
                           type="url"
-                          placeholder="Đường dẫn video (không bắt buộc)"
+                          placeholder="Link video YouTube (watch, youtu.be hoặc embed)"
                           value={lesson.mediaUrl}
                           onChange={(e) => handleChangeCourseLesson(index, 'mediaUrl', e.target.value)}
                           style={{ width: '100%', boxSizing: 'border-box', marginBottom: 8, padding: '9px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem' }}

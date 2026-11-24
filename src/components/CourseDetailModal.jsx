@@ -56,13 +56,42 @@ function getSubjectLessons(course) {
 
 function getVideoEmbedUrl(url) {
   if (!url) return 'https://www.youtube.com/embed/9SGDpanrc8U?enablejsapi=1';
-  let embedUrl = url;
-  if (url.includes('watch?v=')) {
-    const id = url.split('watch?v=')[1].split('&')[0];
-    embedUrl = `https://www.youtube.com/embed/${id}`;
+  let parsedUrl;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    return url;
   }
-  const separator = embedUrl.includes('?') ? '&' : '?';
-  return `${embedUrl}${separator}enablejsapi=1&autoplay=1&origin=${encodeURIComponent(window.location.origin)}`;
+
+  const hostname = parsedUrl.hostname.toLowerCase();
+  const isYouTube = hostname === 'youtu.be'
+    || hostname === 'youtube.com'
+    || hostname.endsWith('.youtube.com')
+    || hostname === 'youtube-nocookie.com'
+    || hostname.endsWith('.youtube-nocookie.com');
+
+  if (!isYouTube) return url;
+
+  const pathParts = parsedUrl.pathname.split('/').filter(Boolean);
+  let videoId = hostname === 'youtu.be' ? pathParts[0] : '';
+  if (parsedUrl.pathname === '/watch') {
+    videoId = parsedUrl.searchParams.get('v') || '';
+  } else if (['embed', 'shorts', 'live', 'v'].includes(pathParts[0])) {
+    videoId = pathParts[1] || '';
+  }
+
+  if (!/^[\w-]+$/.test(videoId)) return url;
+
+  const embedHost = hostname.endsWith('youtube-nocookie.com')
+    ? 'www.youtube-nocookie.com'
+    : 'www.youtube.com';
+  const embedUrl = new URL(`https://${embedHost}/embed/${videoId}`);
+  const start = parsedUrl.searchParams.get('start') || parsedUrl.searchParams.get('t');
+  if (start && /^\d+$/.test(start)) embedUrl.searchParams.set('start', start);
+  embedUrl.searchParams.set('enablejsapi', '1');
+  embedUrl.searchParams.set('autoplay', '1');
+  embedUrl.searchParams.set('origin', window.location.origin);
+  return embedUrl.toString();
 }
 
 export default function CourseDetailModal({
