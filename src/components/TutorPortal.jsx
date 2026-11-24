@@ -40,8 +40,19 @@ import {
   reviewApi,
   tutorProfileApi,
   walletApi,
-  conversationApi
+  conversationApi,
+  lessonApi
 } from '../services/api';
+
+const toDateTimeLocal = (value) => {
+  if (!value) return '';
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return '';
+  const offset = date.getTimezoneOffset() * 60000;
+  return new Date(date.getTime() - offset).toISOString().slice(0, 16);
+};
+
+const toIsoDateTime = (value) => value ? new Date(value).toISOString() : null;
 
 export default function TutorPortal({
   currentUser,
@@ -83,6 +94,11 @@ export default function TutorPortal({
     platformFeePercent: 10,
     active: true
   });
+  const [courseLessons, setCourseLessons] = useState([]);
+  const [deletedLessonIds, setDeletedLessonIds] = useState([]);
+  const [lessonsLoading, setLessonsLoading] = useState(false);
+  const [lessonsLoadError, setLessonsLoadError] = useState(false);
+  const [draftCourseId, setDraftCourseId] = useState(null);
 
   // State cho Form tạo/sửa Gói môi giới nhanh
   const [packageModalOpen, setPackageModalOpen] = useState(false);
@@ -202,6 +218,10 @@ export default function TutorPortal({
   // ==================== CÁC HÀM XỬ LÝ KHÓA HỌC ====================
   const handleOpenCreateCourse = () => {
     setEditingCourse(null);
+    setDraftCourseId(null);
+    setCourseLessons([]);
+    setDeletedLessonIds([]);
+    setLessonsLoadError(false);
     setCourseForm({
       title: '',
       price: 399000,
@@ -211,8 +231,32 @@ export default function TutorPortal({
     setCourseModalOpen(true);
   };
 
+  const loadCourseLessons = async (courseId) => {
+    setLessonsLoading(true);
+    setLessonsLoadError(false);
+    try {
+      const lessons = await lessonApi.getLessons(courseId, 0, 100);
+      setCourseLessons((lessons || []).map((lesson) => ({
+          ...lesson,
+          title: lesson.title || '',
+          mediaUrl: lesson.mediaUrl || '',
+          meetingUrl: lesson.meetingUrl || '',
+          startsAt: toDateTimeLocal(lesson.startsAt)
+      })));
+    } catch (err) {
+      setLessonsLoadError(true);
+      showNotice(err.data?.message || err.message || 'Không thể tải danh sách bài học', true);
+    } finally {
+      setLessonsLoading(false);
+    }
+  };
+
   const handleOpenEditCourse = (course) => {
     setEditingCourse(course);
+    setDraftCourseId(null);
+    setCourseLessons([]);
+    setDeletedLessonIds([]);
+    setLessonsLoadError(false);
     setCourseForm({
       title: course.title || '',
       price: course.price || 0,
@@ -220,6 +264,28 @@ export default function TutorPortal({
       active: course.active ?? true
     });
     setCourseModalOpen(true);
+    loadCourseLessons(course.id);
+  };
+
+  const handleAddCourseLesson = () => {
+    setCourseLessons((prev) => [
+      ...prev,
+      { title: '', mediaUrl: '', meetingUrl: '', startsAt: '', lessonOrder: prev.length + 1 }
+    ]);
+  };
+
+  const handleRemoveCourseLesson = (index) => {
+    const lesson = courseLessons[index];
+    if (lesson?.id) {
+      setDeletedLessonIds((prev) => prev.includes(lesson.id) ? prev : [...prev, lesson.id]);
+    }
+    setCourseLessons((prev) => prev.filter((_, lessonIndex) => lessonIndex !== index));
+  };
+
+  const handleChangeCourseLesson = (index, field, value) => {
+    setCourseLessons((prev) => prev.map((lesson, lessonIndex) =>
+      lessonIndex === index ? { ...lesson, [field]: value } : lesson
+    ));
   };
 
   const handleSaveCourse = async (e) => {
@@ -228,9 +294,18 @@ export default function TutorPortal({
       showNotice('Vui lòng nhập tiêu đề khóa học', true);
       return;
     }
+    if (lessonsLoading || lessonsLoadError) {
+      showNotice('Vui lòng tải được danh sách bài học trước khi lưu khóa học', true);
+      return;
+    }
+    if (courseLessons.some((lesson) => !lesson.title.trim())) {
+      showNotice('Vui lòng nhập tiêu đề cho tất cả bài học', true);
+      return;
+    }
 
     setProcessingId('course-save');
     try {
+      let courseId = editingCourse?.id || draftCourseId;
       if (editingCourse) {
         await courseApi.updateCourse(editingCourse.id, {
           title: courseForm.title.trim(),
@@ -238,16 +313,65 @@ export default function TutorPortal({
           platformFeePercent: Number(courseForm.platformFeePercent),
           active: courseForm.active
         });
-        showNotice('Đã cập nhật thông tin khóa học thành công!');
-      } else {
-        await courseApi.createCourse({
+      } else if (draftCourseId) {
+        await courseApi.updateCourse(draftCourseId, {
           title: courseForm.title.trim(),
           price: Number(courseForm.price),
           platformFeePercent: Number(courseForm.platformFeePercent),
           active: courseForm.active
         });
-        showNotice('Đã xuất bản khóa học mới thành công!');
+      } else {
+        const createdCourse = await courseApi.createCourse({
+          title: courseForm.title.trim(),
+          price: Number(courseForm.price),
+          platformFeePercent: Number(courseForm.platformFeePercent),
+          active: courseForm.active
+        });
+        courseId = createdCourse?.id || createdCourse?.courseId || null;
+        if (courseId) setDraftCourseId(courseId);
       }
+
+      if (courseLessons.length && !courseId) {
+        throw new Error('Khóa học đã được tạo nhưng không nhận được mã khóa học để lưu bài học. Vui lòng tải lại trang và thử lại.');
+      }
+
+      if (courseId) {
+        for (const lessonId of deletedLessonIds) {
+          await lessonApi.deleteLesson(lessonId);
+          setDeletedLessonIds((prev) => prev.filter((id) => id !== lessonId));
+        }
+
+        let lessonsToSave = [...courseLessons];
+        for (let index = 0; index < lessonsToSave.length; index += 1) {
+          const lesson = lessonsToSave[index];
+          const lessonData = {
+            title: lesson.title.trim(),
+            mediaUrl: lesson.mediaUrl.trim() || null,
+            meetingUrl: lesson.meetingUrl.trim() || null,
+            startsAt: toIsoDateTime(lesson.startsAt),
+            lessonOrder: index + 1
+          };
+
+          if (lesson.id) {
+            await lessonApi.updateLesson(lesson.id, lessonData);
+          } else {
+            const createdLesson = await lessonApi.createLesson(courseId, lessonData);
+            let lessonId = createdLesson?.id || createdLesson?.lessonId;
+            if (!lessonId) {
+              const savedLessons = await lessonApi.getLessons(courseId, 0, 100);
+              lessonId = savedLessons.find((saved) =>
+                Number(saved.lessonOrder) === index + 1 && saved.title === lessonData.title
+              )?.id;
+            }
+            if (lessonId) {
+              lessonsToSave[index] = { ...lesson, id: lessonId };
+              setCourseLessons([...lessonsToSave]);
+            }
+          }
+        }
+      }
+
+      showNotice(editingCourse || draftCourseId ? 'Đã cập nhật khóa học và bài học thành công!' : 'Đã xuất bản khóa học mới thành công!');
       setCourseModalOpen(false);
       const res = await courseApi.getCoursesByTutor(currentUser.id);
       setCourses(res || []);
@@ -2212,7 +2336,9 @@ export default function TutorPortal({
             background: '#ffffff',
             borderRadius: 12,
             width: '100%',
-            maxWidth: 520,
+            maxWidth: 720,
+            maxHeight: '90vh',
+            overflowY: 'auto',
             padding: 24,
             boxShadow: '0 20px 40px rgba(0,0,0,0.2)'
           }}>
@@ -2297,6 +2423,93 @@ export default function TutorPortal({
                 </div>
               </div>
 
+              <div style={{ marginBottom: 20 }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                  <div>
+                    <h4 style={{ margin: 0, color: '#1e293b', fontSize: '0.95rem' }}>Danh sách bài học</h4>
+                    <span style={{ color: '#64748b', fontSize: '0.78rem' }}>Thêm video, lịch học trực tiếp và sắp xếp thứ tự bài học.</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={handleAddCourseLesson}
+                    disabled={lessonsLoading || lessonsLoadError}
+                    style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 10px', borderRadius: 6, border: '1px solid #7c3aed', background: '#ffffff', color: '#7c3aed', fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    <PlusCircle size={16} />
+                    Thêm bài học
+                  </button>
+                </div>
+
+                {lessonsLoading ? (
+                  <p style={{ margin: 0, padding: 14, color: '#64748b', textAlign: 'center' }}>Đang tải bài học...</p>
+                ) : lessonsLoadError ? (
+                  <div style={{ padding: 14, background: '#fff7ed', borderRadius: 8, color: '#9a3412', fontSize: '0.84rem', textAlign: 'center' }}>
+                    Không tải được bài học hiện có. Hãy thử lại trước khi chỉnh sửa khóa học.
+                    <button
+                      type="button"
+                      onClick={() => loadCourseLessons(editingCourse.id)}
+                      style={{ display: 'block', margin: '8px auto 0', padding: '6px 10px', border: '1px solid #c2410c', borderRadius: 5, background: '#ffffff', color: '#9a3412', cursor: 'pointer' }}
+                    >
+                      Thử tải lại
+                    </button>
+                  </div>
+                ) : courseLessons.length === 0 ? (
+                  <p style={{ margin: 0, padding: 14, background: '#f8fafc', borderRadius: 8, color: '#64748b', fontSize: '0.84rem', textAlign: 'center' }}>
+                    Chưa có bài học. Bạn có thể thêm bài học ngay tại đây.
+                  </p>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {courseLessons.map((lesson, index) => (
+                      <div key={lesson.id || `new-lesson-${index}`} style={{ padding: 12, border: '1px solid #e2e8f0', borderRadius: 8 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                          <strong style={{ color: '#475569', fontSize: '0.82rem' }}>Bài học {index + 1}</strong>
+                          <button
+                            type="button"
+                            onClick={() => handleRemoveCourseLesson(index)}
+                            aria-label={`Xóa bài học ${index + 1}`}
+                            style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '4px 7px', border: 'none', borderRadius: 5, background: '#fff1f2', color: '#e11d48', cursor: 'pointer' }}
+                          >
+                            <Trash2 size={14} />
+                            Xóa
+                          </button>
+                        </div>
+                        <input
+                          type="text"
+                          placeholder="Tiêu đề bài học *"
+                          value={lesson.title}
+                          onChange={(e) => handleChangeCourseLesson(index, 'title', e.target.value)}
+                          required
+                          style={{ width: '100%', boxSizing: 'border-box', marginBottom: 8, padding: '9px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                        />
+                        <input
+                          type="url"
+                          placeholder="Đường dẫn video (không bắt buộc)"
+                          value={lesson.mediaUrl}
+                          onChange={(e) => handleChangeCourseLesson(index, 'mediaUrl', e.target.value)}
+                          style={{ width: '100%', boxSizing: 'border-box', marginBottom: 8, padding: '9px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                        />
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                          <input
+                            type="url"
+                            placeholder="Đường dẫn buổi học trực tiếp"
+                            value={lesson.meetingUrl}
+                            onChange={(e) => handleChangeCourseLesson(index, 'meetingUrl', e.target.value)}
+                            style={{ minWidth: 0, padding: '9px 10px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.84rem' }}
+                          />
+                          <input
+                            type="datetime-local"
+                            aria-label={`Thời gian bài học ${index + 1}`}
+                            value={lesson.startsAt}
+                            onChange={(e) => handleChangeCourseLesson(index, 'startsAt', e.target.value)}
+                            style={{ minWidth: 0, padding: '8px', borderRadius: 6, border: '1px solid #cbd5e1', fontSize: '0.82rem' }}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
                 <button
                   type="button"
@@ -2307,8 +2520,8 @@ export default function TutorPortal({
                 </button>
                 <button
                   type="submit"
-                  disabled={processingId === 'course-save'}
-                  style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#ffffff', fontWeight: 700, cursor: 'pointer' }}
+                  disabled={processingId === 'course-save' || lessonsLoading || lessonsLoadError}
+                  style={{ padding: '8px 20px', borderRadius: 6, border: 'none', background: '#7c3aed', color: '#ffffff', fontWeight: 700, cursor: processingId === 'course-save' || lessonsLoading || lessonsLoadError ? 'not-allowed' : 'pointer', opacity: processingId === 'course-save' || lessonsLoading || lessonsLoadError ? 0.65 : 1 }}
                 >
                   {processingId === 'course-save' ? 'Đang lưu...' : (editingCourse ? 'Cập nhật' : 'Xuất bản ngay')}
                 </button>
