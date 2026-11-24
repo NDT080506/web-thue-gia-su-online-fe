@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Star, Check, Heart, ShoppingCart, Clock, PlayCircle } from 'lucide-react';
+import { Star, Check, Heart, ShoppingCart, PlayCircle } from 'lucide-react';
 
 export default function CourseCard({ course, onSelectCourse, onAddToCart, isLiked, onToggleWishlist }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -14,7 +14,7 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
       case 'bestseller': return 'badge-bestseller';
       case 'toprated': return 'badge-toprated';
       case 'hot': return 'badge-hot';
-      default: return 'badge-bestseller';
+      default: return '';
     }
   };
 
@@ -27,7 +27,7 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
       <div className="ud-course-card" onClick={() => onSelectCourse && onSelectCourse(course)}>
         {/* Thumbnail */}
         <div className="ud-card-thumbnail-wrapper">
-          <img src={course.thumbnail || 'https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=600&q=80'} alt={course.title} className="ud-card-img" />
+          {course.thumbnail && <img src={course.thumbnail} alt={course.title} className="ud-card-img" />}
           <div className="ud-card-overlay">
             <span className="ud-play-icon"><PlayCircle size={36} /></span>
           </div>
@@ -38,22 +38,26 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
           <h3 className="ud-card-title" title={course.title}>
             {course.title}
           </h3>
-          <p className="ud-card-instructor">{course.instructor || 'Gia sư EduTutor'}</p>
+          {course.instructor && <p className="ud-card-instructor">{course.instructor}</p>}
 
           {/* Rating */}
-          <div className="ud-card-rating">
-            <span className="rating-score">{Number(course.rating || 4.9).toFixed(1)}</span>
-            <div className="rating-stars">
-              {[...Array(5)].map((_, i) => (
-                <Star key={i} size={13} fill="#b4690e" stroke="#b4690e" />
-              ))}
+          {course.rating != null && (
+            <div className="ud-card-rating">
+              <span className="rating-score">{Number(course.rating).toFixed(1)}</span>
+              <div className="rating-stars">
+                {[...Array(Math.max(0, Math.min(5, Math.round(Number(course.rating)))))].map((_, i) => (
+                  <Star key={i} size={13} fill="#b4690e" stroke="#b4690e" />
+                ))}
+              </div>
+              {course.ratingCount != null && (
+                <span className="rating-count">({Number(course.ratingCount).toLocaleString()})</span>
+              )}
             </div>
-            <span className="rating-count">({(course.ratingCount || 1200).toLocaleString()})</span>
-          </div>
+          )}
 
           {/* Price */}
           <div className="ud-card-price-row">
-            <span className="current-price">{formatVND(course.price)}</span>
+            <span className="current-price">{course.price != null ? formatVND(course.price) : 'Chưa cập nhật học phí'}</span>
             {course.originalPrice && (
               <span className="original-price">{formatVND(course.originalPrice)}</span>
             )}
@@ -75,11 +79,11 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
         <div className="ud-hover-preview animate-fade-in">
           <h4 className="preview-title">{course.title}</h4>
           <div className="preview-meta">
-            <span className="preview-badge">{course.level || 'Mọi cấp độ'}</span>
-            <span>Cập nhật {course.updatedDate || '10/2026'}</span>
-            <span>• {course.hours || '24 giờ học'}</span>
+            {course.level && <span className="preview-badge">{course.level}</span>}
+            {course.updatedDate && <span>Cập nhật {course.updatedDate}</span>}
+            {course.hours && <span>• {course.hours}</span>}
           </div>
-          <p className="preview-instructor-bio">{course.instructorRole || 'Giảng viên chuyên môn cao'}</p>
+          {course.instructorRole && <p className="preview-instructor-bio">{course.instructorRole}</p>}
 
           <div className="preview-highlights">
             <div className="highlights-header">Những gì bạn sẽ học:</div>

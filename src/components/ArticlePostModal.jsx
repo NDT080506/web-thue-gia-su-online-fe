@@ -1,20 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   X, 
-  ThumbsUp, 
   MessageCircle, 
   Share2, 
   Globe, 
   Send, 
   MoreHorizontal, 
-  Smile, 
-  CheckCircle2, 
-  Clock, 
-  Bookmark, 
   Eye,
   Loader2,
   Sparkles,
-  Heart,
   Trash2
 } from 'lucide-react';
 import { articleApi } from '../services/api';
@@ -29,11 +23,11 @@ export default function ArticlePostModal({
 }) {
   const [comments, setComments] = useState([]);
   const [loadingComments, setLoadingComments] = useState(false);
+  const [commentsLoadError, setCommentsLoadError] = useState(false);
   const [commentInput, setCommentInput] = useState('');
+  const [commentError, setCommentError] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
   const [deleting, setDeleting] = useState(false);
-  const [isLiked, setIsLiked] = useState(false);
-  const [likesCount, setLikesCount] = useState(24);
   const [copiedLink, setCopiedLink] = useState(false);
   const commentInputRef = useRef(null);
 
@@ -41,16 +35,15 @@ export default function ArticlePostModal({
   useEffect(() => {
     if (!isOpen || !article) return;
 
-    // Reset reaction states
-    setIsLiked(false);
-    setLikesCount(Math.floor(Math.random() * 20) + 12);
     setCommentInput('');
+    setCommentError('');
     setCopiedLink(false);
 
     // Tải danh sách bình luận thật từ CSDL
     async function fetchComments() {
       if (!article.id) return;
       setLoadingComments(true);
+      setCommentsLoadError(false);
       try {
         const res = await articleApi.getComments(article.id);
         if (res && Array.isArray(res)) {
@@ -61,6 +54,7 @@ export default function ArticlePostModal({
       } catch (err) {
         console.warn('Lỗi lấy bình luận từ backend:', err);
         setComments([]);
+        setCommentsLoadError(true);
       } finally {
         setLoadingComments(false);
       }
@@ -72,12 +66,11 @@ export default function ArticlePostModal({
   if (!isOpen || !article) return null;
 
   // Lấy thông tin tác giả
-  const authorName = article.author?.displayName || article.authorNickname || article.author || 'Thành viên EduTutor';
-  const authorAvatar = article.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=120&q=80';
-  const postDate = article.date || (article.createdAt ? new Date(article.createdAt).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : 'Vừa xong');
+  const authorName = article.author?.displayName || article.authorNickname || article.author || 'Tác giả';
+  const postDate = article.date || (article.createdAt ? new Date(article.createdAt).toLocaleString('vi-VN', { dateStyle: 'medium', timeStyle: 'short' }) : '');
   const postTitle = article.title || '';
   const postContent = article.content || article.excerpt || '';
-  const postCategory = article.category || 'Học Tập & Chia Sẻ';
+  const postCategory = article.category || '';
 
   // Kiểm tra quyền xóa bài viết: chỉ người đăng hoặc Admin
   const isAuthor = currentUser && (
@@ -113,17 +106,6 @@ export default function ArticlePostModal({
     }
   };
 
-  // Toggle Like
-  const handleToggleLike = () => {
-    if (isLiked) {
-      setIsLiked(false);
-      setLikesCount(prev => Math.max(0, prev - 1));
-    } else {
-      setIsLiked(true);
-      setLikesCount(prev => prev + 1);
-    }
-  };
-
   // Chia sẻ / Copy link
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href);
@@ -147,37 +129,21 @@ export default function ArticlePostModal({
     }
 
     setSubmittingComment(true);
+    setCommentError('');
     const contentToSend = commentInput.trim();
 
     try {
-      // Gọi API backend lưu bình luận vào PostgreSQL CSDL
       const newCommentResponse = await articleApi.createComment(article.id, contentToSend);
       if (newCommentResponse) {
         setComments(prev => [...prev, newCommentResponse]);
       } else {
-        // Fallback optimistic comment
-        const mockNewComment = {
-          id: 'temp-' + Date.now(),
-          userDisplayName: currentUser.displayName || currentUser.username,
-          userAvatarUrl: null,
-          content: contentToSend,
-          createdAt: new Date().toISOString()
-        };
-        setComments(prev => [...prev, mockNewComment]);
+        const updatedComments = await articleApi.getComments(article.id);
+        setComments(Array.isArray(updatedComments) ? updatedComments : []);
       }
       setCommentInput('');
     } catch (err) {
       console.warn('Lỗi gửi bình luận:', err);
-      // Fallback thêm lạc quan cho giao diện
-      const mockNewComment = {
-        id: 'temp-' + Date.now(),
-        userDisplayName: currentUser.displayName || currentUser.username,
-        userAvatarUrl: null,
-        content: contentToSend,
-        createdAt: new Date().toISOString()
-      };
-      setComments(prev => [...prev, mockNewComment]);
-      setCommentInput('');
+      setCommentError(err?.data?.message || err?.message || 'Không thể gửi bình luận. Vui lòng thử lại.');
     } finally {
       setSubmittingComment(false);
     }
@@ -185,7 +151,7 @@ export default function ArticlePostModal({
 
   // Định dạng thời gian tương đối
   const formatCommentTime = (isoString) => {
-    if (!isoString) return 'Vừa xong';
+    if (!isoString) return '';
     try {
       const date = new Date(isoString);
       const now = new Date();
@@ -264,17 +230,23 @@ export default function ArticlePostModal({
           {/* Post Header (Author info, timestamp, audience) */}
           <div style={{ padding: '16px 20px 12px 20px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-              <img 
-                src={authorAvatar} 
-                alt={authorName}
-                style={{
-                  width: 46,
-                  height: 46,
-                  borderRadius: '50%',
-                  objectFit: 'cover',
-                  border: '1px solid #e4e6eb'
-                }}
-              />
+              {article.authorAvatar ? (
+                <img
+                  src={article.authorAvatar}
+                  alt={authorName}
+                  style={{
+                    width: 46,
+                    height: 46,
+                    borderRadius: '50%',
+                    objectFit: 'cover',
+                    border: '1px solid #e4e6eb'
+                  }}
+                />
+              ) : (
+                <div aria-label={authorName} style={{ width: 46, height: 46, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e4e6eb', color: '#475569', fontWeight: 700 }}>
+                  {authorName.charAt(0).toUpperCase()}
+                </div>
+              )}
               <div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <span style={{ fontWeight: 700, fontSize: '1.02rem', color: '#050505' }}>
@@ -292,13 +264,17 @@ export default function ArticlePostModal({
                   </span>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '0.8rem', color: '#65676b', marginTop: 2 }}>
-                  <span>{postDate}</span>
-                  <span>•</span>
+                  {postDate && <span>{postDate}</span>}
+                  {postCategory && <span>•</span>}
                   <span style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
                     <Globe size={13} /> Công khai
                   </span>
-                  <span>•</span>
-                  <span style={{ color: '#a435f0', fontWeight: 600 }}>#{postCategory}</span>
+                  {postCategory && (
+                    <>
+                      <span>•</span>
+                      <span style={{ color: '#a435f0', fontWeight: 600 }}>#{postCategory}</span>
+                    </>
+                  )}
                 </div>
               </div>
             </div>
@@ -400,89 +376,29 @@ export default function ArticlePostModal({
             borderTop: '1px solid #ced0d4',
             margin: '0 16px'
           }}>
-            {/* Left: Like & Heart Reaction Count */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-              <div style={{ display: 'flex', alignItems: 'center' }}>
-                <span style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  backgroundColor: '#1877f2',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: '0.65rem'
-                }}>
-                  👍
-                </span>
-                <span style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: '50%',
-                  backgroundColor: '#fa383e',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: '#fff',
-                  fontSize: '0.65rem',
-                  marginLeft: -4
-                }}>
-                  ❤️
-                </span>
-              </div>
-              <span style={{ cursor: 'pointer', fontWeight: 500 }}>
-                {likesCount} người thích
-              </span>
-            </div>
-
-            {/* Right: Comments & Views count */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
               <span style={{ cursor: 'pointer' }} onClick={handleFocusCommentInput}>
                 {comments.length} bình luận
               </span>
-              <span>•</span>
-              <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <Eye size={14} /> {article.viewsCount || 28} lượt xem
-              </span>
+              {article.viewsCount != null && (
+                <span style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                  <Eye size={14} /> {article.viewsCount} lượt xem
+                </span>
+              )}
+              {article.likesCount != null && <span>{article.likesCount} lượt thích</span>}
             </div>
           </div>
 
           {/* Facebook Action Buttons Bar: Thích, Bình luận, Chia sẻ */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: '1fr 1fr 1fr',
+            gridTemplateColumns: '1fr 1fr',
             padding: '4px 16px',
             borderTop: '1px solid #ced0d4',
             borderBottom: '1px solid #ced0d4',
             margin: '0 16px'
           }}>
-            {/* 1. Thích */}
-            <button 
-              onClick={handleToggleLike}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: 8,
-                padding: '8px 0',
-                background: 'none',
-                border: 'none',
-                borderRadius: 6,
-                fontWeight: 600,
-                fontSize: '0.92rem',
-                cursor: 'pointer',
-                color: isLiked ? '#1877f2' : '#65676b',
-                transition: 'background-color 0.15s ease'
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = '#f0f2f5'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
-            >
-              <ThumbsUp size={18} fill={isLiked ? '#1877f2' : 'none'} color={isLiked ? '#1877f2' : 'currentColor'} />
-              <span>{isLiked ? 'Đã thích' : 'Thích'}</span>
-            </button>
-
-            {/* 2. Bình luận */}
+            {/* Bình luận */}
             <button 
               onClick={handleFocusCommentInput}
               style={{
@@ -507,7 +423,7 @@ export default function ArticlePostModal({
               <span>Bình luận</span>
             </button>
 
-            {/* 3. Chia sẻ */}
+            {/* Chia sẻ */}
             <button 
               onClick={handleShare}
               style={{
@@ -610,6 +526,11 @@ export default function ArticlePostModal({
                 </button>
               </div>
             </form>
+            {commentError && (
+              <p role="alert" style={{ margin: '-12px 0 16px 48px', color: '#b91c1c', fontSize: '0.85rem' }}>
+                {commentError}
+              </p>
+            )}
 
             {/* Danh sách bình luận */}
             {loadingComments ? (
@@ -617,6 +538,10 @@ export default function ArticlePostModal({
                 <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px', color: '#1877f2' }} />
                 <span style={{ fontSize: '0.88rem' }}>Đang tải bình luận...</span>
               </div>
+            ) : commentsLoadError ? (
+              <p role="alert" style={{ textAlign: 'center', padding: '24px 0', color: '#b91c1c' }}>
+                Không thể tải bình luận. Vui lòng thử lại sau.
+              </p>
             ) : comments.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '30px 20px', color: '#65676b', backgroundColor: '#f9fafb', borderRadius: 10 }}>
                 <MessageCircle size={32} style={{ color: '#bcc0c4', margin: '0 auto 10px' }} />
@@ -675,16 +600,8 @@ export default function ArticlePostModal({
                           </div>
                         </div>
 
-                        {/* Comment Actions (Like, Reply, Time) */}
+                        {/* Comment Actions */}
                         <div style={{ display: 'flex', alignItems: 'center', gap: 14, fontSize: '0.78rem', color: '#65676b', marginTop: 3, paddingLeft: 8 }}>
-                          <span 
-                            style={{ fontWeight: 700, cursor: 'pointer' }}
-                            onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
-                            onMouseLeave={(e) => e.currentTarget.style.textDecoration = 'none'}
-                            onClick={() => alert('Bạn đã thích bình luận này!')}
-                          >
-                            Thích
-                          </span>
                           <span 
                             style={{ fontWeight: 700, cursor: 'pointer' }}
                             onMouseEnter={(e) => e.currentTarget.style.textDecoration = 'underline'}
@@ -696,7 +613,7 @@ export default function ArticlePostModal({
                           >
                             Phản hồi
                           </span>
-                          <span>{formatCommentTime(comment.createdAt)}</span>
+                          {formatCommentTime(comment.createdAt) && <span>{formatCommentTime(comment.createdAt)}</span>}
                         </div>
                       </div>
                     </div>

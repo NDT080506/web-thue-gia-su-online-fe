@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { Search, CheckCircle, Star, Users, Award, ArrowRight } from 'lucide-react';
+import { Star, ArrowRight } from 'lucide-react';
 
 export default function HeroBanner({ onSearchTag }) {
   const popularTags = ['Toán 12', 'IELTS 7.5+', 'Java Spring Boot', 'Python AI', 'Hóa Học THPT'];
@@ -11,7 +11,7 @@ export default function HeroBanner({ onSearchTag }) {
           {/* Left Text Card (Udemy Billboard Card) */}
           <div className="ud-hero-content animate-fade-in">
             <div className="ud-hero-pill">
-              <Star size={14} className="star-icon" /> Nền tảng giáo dục & gia sư số 1
+              <Star size={14} className="star-icon" /> Nền tảng học tập & kết nối gia sư
             </div>
             
             <h1 className="ud-hero-title">
@@ -19,7 +19,7 @@ export default function HeroBanner({ onSearchTag }) {
             </h1>
             
             <p className="ud-hero-desc">
-              Kết nối trực tiếp 1-1 với đội ngũ giáo viên, thủ khoa trường chuyên và chuyên gia hàng đầu. Lộ trình cá nhân hóa, học thử miễn phí.
+              Khám phá khóa học, xem hồ sơ gia sư và lựa chọn gói học phù hợp với nhu cầu của bạn.
             </p>
 
             {/* Quick action buttons */}
@@ -34,7 +34,7 @@ export default function HeroBanner({ onSearchTag }) {
 
             {/* Popular search tags */}
             <div className="ud-popular-tags">
-              <span className="tags-label">Xu hướng tìm kiếm:</span>
+              <span className="tags-label">Từ khóa gợi ý:</span>
               <div className="tags-list">
                 {popularTags.map((tag) => (
                   <button 
@@ -56,26 +56,6 @@ export default function HeroBanner({ onSearchTag }) {
               alt="Học tập trực tuyến" 
               className="ud-hero-img"
             />
-            {/* Floating stats badge */}
-            <div className="ud-floating-badge badge-1">
-              <div className="badge-icon">
-                <Users size={20} />
-              </div>
-              <div>
-                <span className="badge-value">50.000+</span>
-                <span className="badge-label">Học viên tin chọn</span>
-              </div>
-            </div>
-
-            <div className="ud-floating-badge badge-2">
-              <div className="badge-icon gold">
-                <Award size={20} />
-              </div>
-              <div>
-                <span className="badge-value">100%</span>
-                <span className="badge-label">Gia sư kiểm định</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import CourseCard from './CourseCard';
-import { featuredCourses } from '../data/mockData';
 import { Sparkles, Search, X, BookOpen, PlusCircle } from 'lucide-react';
 
 function removeVietnameseTones(str) {
@@ -18,8 +17,9 @@ function removeVietnameseTones(str) {
   return str.trim();
 }
 
-export default function CourseTabs({ 
-  courses = featuredCourses, 
+export default function CourseTabs({
+  courses = [],
+  loadError = false,
   onSelectCourse, 
   onAddToCart, 
   wishlist, 
@@ -65,9 +65,9 @@ export default function CourseTabs({
             <span className="ud-section-tag">
               <Sparkles size={14} /> Khóa học & Buổi kèm chọn lọc
             </span>
-            <h2 className="ud-section-title">Khám phá các khóa học thịnh hành nhất</h2>
+            <h2 className="ud-section-title">Khám phá các khóa học</h2>
             <p className="ud-section-desc">
-              Được học viên đánh giá cao về tính thực tiễn, hỗ trợ giải đáp trực tiếp 1-1 từ giảng viên.
+              Xem thông tin khóa học và nội dung do gia sư cung cấp.
             </p>
           </div>
 
@@ -175,11 +175,19 @@ export default function CourseTabs({
           }}>
             <BookOpen size={48} color="#94a3b8" style={{ margin: '0 auto 12px', opacity: 0.8 }} />
             <h3 style={{ fontSize: '1.2rem', color: '#1e293b', marginBottom: 6 }}>
-              Không tìm thấy khóa học nào phù hợp
+              {loadError
+                ? 'Không thể tải danh sách khóa học'
+                : cleanSearch || activeTab !== 'all'
+                  ? 'Không tìm thấy khóa học nào phù hợp'
+                  : 'Chưa có khóa học nào'}
             </h3>
-            <p style={{ color: '#64748b', fontSize: '0.92rem', maxWidth: 440, margin: '0 auto 16px' }}>
-              Không có khóa học nào khớp với từ khóa "<strong>{searchKeyword}</strong>"{activeTab !== 'all' ? ' trong danh mục này' : ''}.
-            </p>
+            {(loadError || cleanSearch || activeTab !== 'all') && (
+              <p style={{ color: '#64748b', fontSize: '0.92rem', maxWidth: 440, margin: '0 auto 16px' }}>
+                {loadError
+                  ? 'Không kết nối được với máy chủ. Vui lòng thử lại sau.'
+                  : <>Không có khóa học nào khớp với từ khóa "<strong>{searchKeyword}</strong>"{activeTab !== 'all' ? ' trong danh mục này' : ''}.</>}
+              </p>
+            )}
             {onClearSearch && (
               <button 
                 className="btn btn-primary btn-sm"

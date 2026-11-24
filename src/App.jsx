@@ -7,7 +7,6 @@ import TutorCard from './components/TutorCard';
 import CategoriesGrid from './components/CategoriesGrid';
 import ArticlesSection from './components/ArticlesSection';
 import BecomeTutorBanner from './components/BecomeTutorBanner';
-import Testimonials from './components/Testimonials';
 import Footer from './components/Footer';
 import AuthModal from './components/AuthModal';
 import CourseDetailModal from './components/CourseDetailModal';
@@ -27,7 +26,6 @@ import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
 import CreatePackageModal from './components/CreatePackageModal';
 import TutorCoursePackageManager from './components/TutorCoursePackageManager';
-import {communityArticles } from './data/mockData';
 import {
   authApi,
   articleApi,
@@ -69,8 +67,11 @@ export default function App() {
   const [isBackendOnline, setIsBackendOnline] = useState(false);
 
   const [courses, setCourses] = useState([]);
+  const [coursesLoadError, setCoursesLoadError] = useState(false);
   const [tutors, setTutors] = useState([]);
-  const [articles, setArticles] = useState(communityArticles);
+  const [tutorsLoadError, setTutorsLoadError] = useState(false);
+  const [articles, setArticles] = useState([]);
+  const [articlesLoadError, setArticlesLoadError] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
@@ -302,6 +303,11 @@ export default function App() {
       const online = await checkBackendHealth();
 
       setIsBackendOnline(online);
+      if (!online) {
+        setCoursesLoadError(true);
+        setTutorsLoadError(true);
+        setArticlesLoadError(true);
+      }
 
       // Lưu user bên ngoài try để sử dụng ở cuối initData
       let savedUser = null;
@@ -398,12 +404,12 @@ export default function App() {
       if (online) {
         try {
           const realArticles = await articleApi.getArticles();
-
-          if (realArticles?.length > 0) {
-            setArticles(realArticles);
-          }
+          setArticles(Array.isArray(realArticles) ? realArticles : []);
+          setArticlesLoadError(false);
         } catch (err) {
           console.warn('Lỗi lấy articles từ BE:', err);
+          setArticles([]);
+          setArticlesLoadError(true);
         }
 
         try {
@@ -416,12 +422,14 @@ export default function App() {
             : [];
 
           setCourses(formatted);
+          setCoursesLoadError(false);
         } catch (err) {
           console.warn('Lỗi lấy courses từ BE:', err);
+          setCoursesLoadError(true);
         }
 
         // Đã khai báo savedUser ở đầu hàm
-        await fetchTutorsAndPackages(savedUser);
+        await fetchTutorsAndPackages();
       }
     }
 
@@ -432,9 +440,7 @@ export default function App() {
   }, []);
 
   // Đồng bộ danh sách gia sư và các gói dịch vụ trực tuyến từ Backend (hoàn toàn linh hoạt theo bất kỳ gia sư nào)
-  const fetchTutorsAndPackages = async (
-    activeUser = currentUser
-  ) => {
+  const fetchTutorsAndPackages = async () => {
     try {
       // 1. Lấy danh sách hồ sơ gia sư
       let realTutors = [];
@@ -446,17 +452,14 @@ export default function App() {
           'Lỗi lấy danh sách gia sư:',
           err.message
         );
+        setTutors([]);
+        setTutorsLoadError(true);
+        return;
       }
 
       // 2. Lấy ID gia sư
       const tutorIds = [
-        ...new Set([
-          ...realTutors.map((t) => t.id || t.userId),
-
-          ...(activeUser?.role === 'TUTOR' && activeUser.id
-            ? [activeUser.id]
-            : []),
-        ].filter(Boolean)),
+        ...new Set(realTutors.map((t) => t.id || t.userId).filter(Boolean)),
       ];
 
       // 3. Lấy gói active của từng gia sư
@@ -479,121 +482,51 @@ export default function App() {
 
       const allPkgs = packageResults.flat();
 
-      // 4. Chuẩn hóa danh sách gia sư
-      setTutors((prev) => {
-        const mapById = new Map();
+      const formattedTutors = realTutors.flatMap((tutor) => {
+        const tutorId = tutor.id || tutor.userId;
+        const name = tutor.displayName || tutor.name;
+        if (!tutorId || !name) return [];
 
-        realTutors.forEach((rt, idx) => {
-          const tutorId = rt.id || rt.userId;
+        const subjects = Array.isArray(tutor.subjectsCanTeach)
+          ? tutor.subjectsCanTeach
+          : (tutor.subjectsCanTeach || '')
+              .split(/[,;\n]/)
+              .map((item) => item.trim())
+              .filter(Boolean);
+        const tutorPackages = allPkgs.filter((pkg) => pkg.tutorId === tutorId);
 
-          const pkgsForThisTutor = allPkgs.filter(
-            (pkg) => pkg.tutorId === tutorId
-          );
-
-          const existing = mapById.get(tutorId);
-
-          const subjects = Array.isArray(rt.subjectsCanTeach)
-            ? rt.subjectsCanTeach
-            : (rt.subjectsCanTeach || '')
-                .split(/[,;\n]/)
-                .map((item) => item.trim())
-                .filter(Boolean);
-
-          if (existing) {
-            mapById.set(tutorId, {
-              ...existing,
-              name: rt.displayName || existing.name,
-              bio: rt.bio || existing.bio,
-              avatar: rt.avatarUrl || existing.avatar,
-              rating: Number(rt.rating ?? existing.rating ?? 5),
-              subjects: subjects.length
-                ? subjects
-                : existing.subjects,
-              packages: pkgsForThisTutor,
-            });
-          } else {
-            mapById.set(tutorId, {
-              id: tutorId,
-              name: rt.displayName || `Gia sư ${idx + 1}`,
-              title: 'Gia sư chuyên môn EduTutor',
-              degree: 'Hồ sơ gia sư EduTutor',
-              experience: 'Gia sư trực tuyến',
-              avatar:
-                rt.avatarUrl ||
-                'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=250&q=80',
-              rating: Number(rt.rating ?? 5),
-              reviews: 0,
-              students: 0,
-              hourlyRate: pkgsForThisTutor[0]?.price ?? 0,
-              subjects: subjects.length
-                ? subjects
-                : ['Dạy kèm 1-1'],
-              isVerified: true,
-              bio: rt.bio || '',
-              packages: pkgsForThisTutor,
-            });
-          }
-        });
-
-        // 5. Bảo đảm gia sư đang đăng nhập có trong danh sách
-        if (
-          activeUser?.role === 'TUTOR' &&
-          activeUser.id
-        ) {
-          const myPkgs = allPkgs.filter(
-            (pkg) => pkg.tutorId === activeUser.id
-          );
-
-          const existing = mapById.get(activeUser.id);
-
-          if (existing) {
-            existing.packages = myPkgs;
-            mapById.set(activeUser.id, existing);
-          } else {
-            mapById.set(activeUser.id, {
-              id: activeUser.id,
-              name: activeUser.displayName || 'Gia sư (Bạn)',
-              title: 'Gia sư chuyên môn 1-1',
-              degree: 'Hồ sơ gia sư EduTutor',
-              avatar:
-                activeUser.avatarUrl ||
-                'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=250&q=80',
-              rating: 5,
-              reviews: 0,
-              students: 0,
-              hourlyRate: myPkgs[0]?.price ?? 0,
-              subjects: ['Dạy kèm 1-1'],
-              isVerified: true,
-              bio: '',
-              packages: myPkgs,
-            });
-          }
-        }
-
-        // 6. Đồng bộ gói dịch vụ cho từng gia sư
-        return Array.from(mapById.values()).map((tutor) => {
-          const matchedPkgs = allPkgs.filter(
-            (pkg) => pkg.tutorId === tutor.id
-          );
-
-          return {
-            ...tutor,
-            packages: matchedPkgs
-          };
-        });
+        return [{
+          id: tutorId,
+          name,
+          title: tutor.title || tutor.headline || '',
+          degree: tutor.degree || '',
+          experience: tutor.experience || '',
+          avatar: tutor.avatarUrl || tutor.avatar || '',
+          rating: tutor.rating != null ? Number(tutor.rating) : null,
+          reviews: tutor.reviews ?? tutor.reviewCount ?? null,
+          students: tutor.students ?? tutor.studentCount ?? null,
+          hourlyRate: tutor.hourlyRate ?? tutor.pricePerHour ?? null,
+          subjects,
+          isVerified: Boolean(tutor.isVerified),
+          bio: tutor.bio || '',
+          packages: tutorPackages
+        }];
       });
+      setTutors(formattedTutors);
+      setTutorsLoadError(false);
 
     } catch (err) {
       console.warn(
         'Lỗi đồng bộ gia sư và gói dịch vụ:',
         err
       );
+      setTutorsLoadError(true);
     }
   };
 
   // Tải lại các gói dịch vụ của tất cả gia sư
   const loadTutorPackages = async () => {
-    await fetchTutorsAndPackages(currentUser);
+    await fetchTutorsAndPackages();
   };
 
   // Fetch latest courses from Backend
@@ -608,9 +541,11 @@ export default function App() {
         : [];
 
       setCourses(formatted);
+      setCoursesLoadError(false);
     } catch (err) {
       console.error('Lỗi tải khóa học:', err);
       setCourses([]);
+      setCoursesLoadError(true);
     }
   };
 
@@ -664,7 +599,7 @@ export default function App() {
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
     await loadConversationsCount(user);
-    await fetchTutorsAndPackages(user);
+    await fetchTutorsAndPackages();
   };
 
   const handleLogout = async () => {
@@ -924,56 +859,50 @@ export default function App() {
       return false;
     }
 
+    if (!isBackendOnline) {
+      alert('Không thể ghi danh khi máy chủ đang ngoại tuyến. Vui lòng thử lại sau.');
+      return false;
+    }
+    if (course.price == null) {
+      alert('Khóa học chưa có học phí để ghi danh. Vui lòng liên hệ gia sư.');
+      return false;
+    }
+
     try {
-      if (isBackendOnline) {
-        // Nếu khóa học miễn phí
-        if (!course.price || course.price === 0) {
-          await courseApi.enrollCourse(course.id);
-          setEnrolledCourseIds(prev => [...prev, course.id]);
-          alert(`🎉 Chúc mừng! Bạn đã đăng ký thành công khóa học miễn phí "${course.title}". Toàn bộ video bài giảng đã được mở khóa!`);
+      if (course.price === 0) {
+        await courseApi.enrollCourse(course.id);
+        setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
+        alert(`🎉 Chúc mừng! Bạn đã đăng ký thành công khóa học miễn phí "${course.title}".`);
+        return true;
+      }
+
+      const myEnrolls = await courseApi.getMyEnrollments();
+      const enrollment = (myEnrolls || []).find(e => e.courseId === course.id);
+
+      if (enrollment) {
+        if (enrollment.status === 'ACTIVE' || enrollment.status === 'COMPLETED') {
+          setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
+          alert(`Bạn đã đăng ký khóa học "${course.title}" rồi.`);
           return true;
         }
 
-        // Kiểm tra xem đã có đơn ghi danh trước đó chưa
-        let enrollment = null;
-        try {
-          const myEnrolls = await courseApi.getMyEnrollments();
-          enrollment = (myEnrolls || []).find(e => e.courseId === course.id);
-        } catch (e) {
-          // ignore
-        }
-
-        if (enrollment) {
-          if (enrollment.status === 'ACTIVE' || enrollment.status === 'COMPLETED') {
-            setEnrolledCourseIds(prev => [...prev, course.id]);
-            alert(`Bạn đã đăng ký khóa học "${course.title}" rồi! Toàn bộ video bài giảng đã sẵn sàng.`);
-            return true;
-          }
-
-          // Khóa học đang ở trạng thái PENDING -> mở Checkout thanh toán
-          handleOpenCheckout({
-            type: 'course',
-            item: course,
-            enrollmentId: enrollment.id,
-            amount: course.price
-          });
-          return false;
-        }
-
-        // Tạo đơn ghi danh mới (status PENDING từ Backend)
-        const res = await courseApi.enrollCourse(course.id);
         handleOpenCheckout({
           type: 'course',
           item: course,
-          enrollmentId: res?.id,
+          enrollmentId: enrollment.id,
           amount: course.price
         });
         return false;
-      } else {
-        setEnrolledCourseIds(prev => [...prev, course.id]);
-        alert(`[Chế độ UI] Đã kích hoạt khóa học "${course.title}" thành công!`);
-        return true;
       }
+
+      const res = await courseApi.enrollCourse(course.id);
+      handleOpenCheckout({
+        type: 'course',
+        item: course,
+        enrollmentId: res?.id,
+        amount: course.price
+      });
+      return false;
     } catch (err) {
       const errMsg = String(err?.data?.message || err?.message || err || 'Có lỗi xảy ra');
       if (errMsg.includes('already enrolled') || errMsg.includes('đã đăng ký') || err?.status === 400) {
@@ -981,6 +910,9 @@ export default function App() {
         try {
           const myEnrolls = await courseApi.getMyEnrollments();
           const pending = (myEnrolls || []).find(e => e.courseId === course.id && e.status === 'PENDING');
+          const active = (myEnrolls || []).find(e =>
+            e.courseId === course.id && (e.status === 'ACTIVE' || e.status === 'COMPLETED')
+          );
           if (pending) {
             handleOpenCheckout({
               type: 'course',
@@ -990,15 +922,16 @@ export default function App() {
             });
             return false;
           }
-        } catch (e) { }
-        setEnrolledCourseIds(prev => [...prev, course.id]);
-        alert(`Bạn đã ghi danh khóa học này trước đó rồi! Toàn bộ video bài giảng đã sẵn sàng để bạn học.`);
-        return true;
-      }
-      if (errMsg.includes('Course not found') || errMsg.includes('COURSE_NOT_FOUND')) {
-        setEnrolledCourseIds(prev => [...prev, course.id]);
-        alert(`[Khóa học mẫu] Đã mở khóa video khóa học demo "${course.title}" để bạn trải nghiệm!`);
-        return true;
+          if (active) {
+            setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
+            alert(`Bạn đã ghi danh khóa học "${course.title}" rồi.`);
+            return true;
+          }
+        } catch (lookupError) {
+          console.warn('Không thể xác minh trạng thái ghi danh:', lookupError);
+        }
+        alert(`Không thể xác minh trạng thái ghi danh: ${errMsg}`);
+        return false;
       }
       alert(`Đăng ký khóa học không thành công: ${errMsg}`);
       throw err;
@@ -1011,38 +944,25 @@ export default function App() {
       handleOpenAuth('login');
       return;
     }
+    if (!isBackendOnline) {
+      alert('Không thể đăng bài khi máy chủ đang ngoại tuyến. Vui lòng thử lại sau.');
+      return;
+    }
     const title = prompt('Nhập tiêu đề bài viết:');
     if (!title) return;
     const content = prompt('Nhập nội dung bài viết:');
     if (!content) return;
 
     try {
-      if (isBackendOnline) {
-        await articleApi.createArticle({
-          title,
-          content,
-          minRoleLevel: 0
-        });
-        alert('Đã đăng bài viết mới lên Backend thành công!');
-        // Refresh articles
-        const updated = await articleApi.getArticles();
-        if (updated) setArticles(updated);
-      } else {
-        const newArt = {
-          id: 'a' + Date.now(),
-          title,
-          excerpt: content.substring(0, 100) + '...',
-          author: currentUser.displayName || currentUser.username,
-          authorAvatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=100&q=80',
-          date: 'Hôm nay',
-          commentsCount: 0,
-          viewsCount: 1,
-          category: 'Cộng Đồng',
-          readTime: '3 phút'
-        };
-        setArticles([newArt, ...articles]);
-        alert('Đã đăng bài viết mới thành công!');
-      }
+      await articleApi.createArticle({
+        title,
+        content,
+        minRoleLevel: 0
+      });
+      alert('Đã đăng bài viết mới lên Backend thành công!');
+      const updated = await articleApi.getArticles();
+      setArticles(Array.isArray(updated) ? updated : []);
+      setArticlesLoadError(false);
     } catch (err) {
       alert('Không thể đăng bài: ' + err.message);
     }
@@ -1050,10 +970,13 @@ export default function App() {
 
   // Delete Article (Chỉ người đăng bài viết hoặc Quản trị viên mới có quyền xóa)
   const handleDeleteArticle = async (articleId) => {
+    if (!isBackendOnline) {
+      alert('Không thể xóa bài viết khi máy chủ đang ngoại tuyến.');
+      return;
+    }
+
     try {
-      if (isBackendOnline) {
-        await articleApi.deleteArticle(articleId);
-      }
+      await articleApi.deleteArticle(articleId);
       setArticles((prev) => prev.filter((a) => a.id !== articleId));
       if (selectedArticle && selectedArticle.id === articleId) {
         setSelectedArticle(null);
@@ -1388,6 +1311,7 @@ export default function App() {
         {/* 4. Filterable Courses Section (Connected to Backend Courses) */}
         <CourseTabs
           courses={courses}
+          loadError={coursesLoadError}
           onSelectCourse={(course) => setSelectedCourse(course)}
           onAddToCart={handleAddToCart}
           wishlist={wishlistCourseIds}
@@ -1454,7 +1378,13 @@ export default function App() {
                 ))
               ) : (
                 <div style={{ gridColumn: '1 / -1', padding: '30px', textAlign: 'center', background: '#f8fafc', borderRadius: 8, color: '#64748b' }}>
-                  <p style={{ margin: 0, fontWeight: 600 }}>Không tìm thấy gia sư nào phù hợp với từ khóa "{searchKeyword}"</p>
+                  <p style={{ margin: 0, fontWeight: 600 }}>
+                    {tutorsLoadError
+                      ? 'Không thể tải danh sách gia sư. Vui lòng thử lại sau.'
+                      : searchKeyword
+                        ? `Không tìm thấy gia sư nào phù hợp với từ khóa "${searchKeyword}"`
+                        : 'Chưa có gia sư nào.'}
+                  </p>
                 </div>
               )}
             </div>
@@ -1467,6 +1397,7 @@ export default function App() {
         {/* 7. Community Articles & Forum (Connected to Backend Articles) */}
         <ArticlesSection
           articles={articles}
+          loadError={articlesLoadError}
           onOpenArticle={(art) => setSelectedArticle(art)}
           onCreateArticle={handleCreateArticle}
           onDeleteArticle={handleDeleteArticle}
@@ -1476,8 +1407,6 @@ export default function App() {
         {/* 8. Become Instructor Banner */}
         <BecomeTutorBanner onApplyTutor={() => setTutorApplicationModalOpen(true)} />
 
-        {/* 9. Student Testimonials */}
-        <Testimonials />
       </main>
 
       {/* 10. Udemy Footer */}

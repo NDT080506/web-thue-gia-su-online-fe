@@ -9,7 +9,6 @@ import {
   DollarSign,
   Percent,
   ShieldCheck,
-  Sparkles,
   BookOpen,
   GraduationCap
 } from 'lucide-react';
@@ -27,12 +26,12 @@ export default function CreatePackageModal({
 
   // Package Form State
   const [packageName, setPackageName] = useState('');
-  const [packagePrice, setPackagePrice] = useState(450000);
+  const [packagePrice, setPackagePrice] = useState(0);
   const [packageFeePercent, setPackageFeePercent] = useState(10);
 
   // Course Form State
   const [courseTitle, setCourseTitle] = useState('');
-  const [coursePrice, setCoursePrice] = useState(399000);
+  const [coursePrice, setCoursePrice] = useState(0);
   const [courseFeePercent, setCourseFeePercent] = useState(10);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -56,20 +55,6 @@ export default function CreatePackageModal({
   const numCourseFeePercent = Number(courseFeePercent) || 0;
   const coursePlatformFee = Math.round((numCoursePrice * numCourseFeePercent) / 100);
   const courseTutorIncome = Math.max(0, numCoursePrice - coursePlatformFee);
-
-  const handleApplyPackagePreset = (presetName, presetPrice, presetFee) => {
-    setPackageName(presetName);
-    setPackagePrice(presetPrice);
-    setPackageFeePercent(presetFee);
-    setErrorMsg('');
-  };
-
-  const handleApplyCoursePreset = (presetTitle, presetPrice) => {
-    setCourseTitle(presetTitle);
-    setCoursePrice(presetPrice);
-    setCourseFeePercent(10);
-    setErrorMsg('');
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -108,7 +93,7 @@ export default function CreatePackageModal({
         setTimeout(() => {
           onClose();
           setPackageName('');
-          setPackagePrice(450000);
+          setPackagePrice(0);
           setPackageFeePercent(10);
           setSuccessMsg('');
         }, 1500);
@@ -148,7 +133,7 @@ export default function CreatePackageModal({
         setTimeout(() => {
           onClose();
           setCourseTitle('');
-          setCoursePrice(399000);
+          setCoursePrice(0);
           setSuccessMsg('');
         }, 1500);
       } catch (err) {
@@ -271,39 +256,6 @@ export default function CreatePackageModal({
           {/* ================= TAB 1: BROKERAGE PACKAGE ================= */}
           {activeTab === 'package' && (
             <>
-              {/* Quick Presets */}
-              <div style={{ marginBottom: 18 }}>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                  ⚡ Gợi ý mẫu gói dịch vụ nhanh:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#d8b4fe', color: '#7e22ce', background: '#faf5ff' }}
-                    onClick={() => handleApplyPackagePreset('[Gói Dạy Kèm 1-1] 3 Buổi Kèm Riêng & Ký Quỹ Escrow', 450000, 10)}
-                  >
-                    3 Buổi Kèm 1-1 (450k • Sàn 10%)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#d8b4fe', color: '#7e22ce', background: '#faf5ff' }}
-                    onClick={() => handleApplyPackagePreset('[Gói Dạy Kèm 1-1] 10 Buổi Kèm Chuyên Sâu & Ký Quỹ Escrow', 1400000, 10)}
-                  >
-                    10 Buổi Kèm 1-1 (1.4Tr • Sàn 10%)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#cbd5e1', color: '#475569', background: '#f8fafc' }}
-                    onClick={() => handleApplyPackagePreset('[Gói Môi Giới Ngoài] Phí Kết Nối Tiêu Chuẩn (Tự dạy ngoài)', 150000, 100)}
-                  >
-                    Gói Thuần Môi Giới (150k • Sàn 100%)
-                  </button>
-                </div>
-              </div>
-
               {/* Name Field */}
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
@@ -329,7 +281,6 @@ export default function CreatePackageModal({
                     type="number"
                     step="10000"
                     min="10000"
-                    placeholder="450000"
                     value={packagePrice}
                     onChange={(e) => setPackagePrice(e.target.value)}
                     required
@@ -385,39 +336,6 @@ export default function CreatePackageModal({
           {/* ================= TAB 2: ONLINE COURSE ================= */}
           {activeTab === 'course' && (
             <>
-              {/* Quick Presets */}
-              <div style={{ marginBottom: 18 }}>
-                <span style={{ fontSize: '0.8rem', color: '#64748b', fontWeight: 600, display: 'block', marginBottom: 6 }}>
-                  ⚡ Gợi ý mẫu khóa học nhanh:
-                </span>
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#d8b4fe', color: '#7e22ce', background: '#faf5ff' }}
-                    onClick={() => handleApplyCoursePreset('Khóa Học Toán 12: Đột Phá Điểm 9+ THPT Quốc Gia 2026', 399000)}
-                  >
-                    Toán 12 Đột Phá (399k)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#d8b4fe', color: '#7e22ce', background: '#faf5ff' }}
-                    onClick={() => handleApplyCoursePreset('Chiến Lược Chinh Phục IELTS 7.0+ Cho Người Bận Rộn', 599000)}
-                  >
-                    IELTS 7.0+ (599k)
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    style={{ fontSize: '0.78rem', padding: '5px 12px', borderRadius: 20, borderColor: '#cbd5e1', color: '#475569', background: '#f8fafc' }}
-                    onClick={() => handleApplyCoursePreset('Khóa Học Nhập Môn Lập Trình Web React & Java Spring Boot', 450000)}
-                  >
-                    Lập Trình Web (450k)
-                  </button>
-                </div>
-              </div>
-
               {/* Title Field */}
               <div style={{ marginBottom: 16 }}>
                 <label style={{ display: 'block', fontSize: '0.84rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
@@ -443,7 +361,6 @@ export default function CreatePackageModal({
                     type="number"
                     step="10000"
                     min="0"
-                    placeholder="399000"
                     value={coursePrice}
                     onChange={(e) => setCoursePrice(e.target.value)}
                     required

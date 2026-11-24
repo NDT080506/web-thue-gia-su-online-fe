@@ -4,10 +4,7 @@ import {
   ShoppingCart, 
   Trash2, 
   ArrowRight, 
-  CheckCircle2, 
-  ShieldCheck, 
   Loader2, 
-  Sparkles,
   BookOpen
 } from 'lucide-react';
 
@@ -31,8 +28,6 @@ export default function CartModal({
   };
 
   const totalPrice = cartItems.reduce((sum, item) => sum + (item.price || 0), 0);
-  const totalOriginalPrice = Math.round(totalPrice * 1.5); // Ưu đãi giảm giá 33%
-
   const handleCheckoutClick = async () => {
     if (cartItems.length === 0 || isCheckingOut) return;
     setIsCheckingOut(true);
@@ -58,7 +53,7 @@ export default function CartModal({
   // Tìm thông tin chi tiết khóa học (như ảnh thumbnail)
   const getCourseThumbnail = (courseId) => {
     const found = courses.find(c => c.id === courseId);
-    return found?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80';
+    return found?.image || null;
   };
 
   return (
@@ -75,7 +70,7 @@ export default function CartModal({
         {/* Modal Header */}
         <div className="detail-modal-hero" style={{ padding: '24px 32px' }}>
           <div className="detail-hero-left">
-            <span className="badge badge-bestseller">
+            <span className="badge">
               <ShoppingCart size={13} style={{ display: 'inline', marginRight: 4 }} /> Giỏ hàng khóa học
             </span>
             <h2 className="detail-title" style={{ fontSize: '1.6rem', marginTop: 8 }}>
@@ -98,7 +93,7 @@ export default function CartModal({
                 Giỏ hàng của bạn đang trống
               </h3>
               <p style={{ color: '#6a6f73', fontSize: '0.95rem', maxWidth: 440, margin: '0 auto 24px' }}>
-                Khám phá các khóa học trực tuyến chất lượng cao và thêm vào giỏ hàng để bắt đầu hành trình học tập.
+                Khám phá các khóa học trực tuyến và thêm vào giỏ hàng để bắt đầu hành trình học tập.
               </p>
               <button 
                 className="btn btn-primary"
@@ -113,12 +108,6 @@ export default function CartModal({
             </div>
           ) : (
             <div>
-              {/* Promotion Notice */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: '#fcf8ff', border: '1px solid #d1a8f9', borderRadius: 8, padding: '12px 18px', marginBottom: 20, color: '#6b149b', fontSize: '0.9rem' }}>
-                <Sparkles size={18} />
-                <span>Bạn đang được áp dụng ưu đãi giảm giá trực tiếp từ hệ thống EduTutor!</span>
-              </div>
-
               {/* Course Items List */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: 14, marginBottom: 24 }}>
                 {cartItems.map((item) => (
@@ -138,11 +127,20 @@ export default function CartModal({
                     }}
                   >
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 260 }}>
-                      <img 
-                        src={getCourseThumbnail(item.courseId)} 
-                        alt={item.courseTitle}
-                        style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
-                      />
+                      {getCourseThumbnail(item.courseId) ? (
+                        <img
+                          src={getCourseThumbnail(item.courseId)}
+                          alt={item.courseTitle}
+                          style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                        />
+                      ) : (
+                        <div
+                          aria-hidden="true"
+                          style={{ width: 90, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#f2f3f5', color: '#6a6f73', flexShrink: 0 }}
+                        >
+                          <BookOpen size={24} />
+                        </div>
+                      )}
                       <div>
                         <h4 
                           style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#1c1d1f', cursor: 'pointer', lineHeight: 1.35 }}
@@ -156,9 +154,11 @@ export default function CartModal({
                         >
                           {item.courseTitle}
                         </h4>
-                        <div style={{ fontSize: '0.82rem', color: '#6a6f73', marginTop: 4 }}>
-                          Giảng viên: <strong>{item.tutorName || 'Gia sư EduTutor'}</strong>
-                        </div>
+                        {item.tutorName && (
+                          <div style={{ fontSize: '0.82rem', color: '#6a6f73', marginTop: 4 }}>
+                            Giảng viên: <strong>{item.tutorName}</strong>
+                          </div>
+                        )}
                       </div>
                     </div>
 
@@ -166,9 +166,6 @@ export default function CartModal({
                       <div style={{ textAlign: 'right' }}>
                         <div style={{ fontSize: '1.15rem', fontWeight: 800, color: '#1c1d1f', fontFamily: 'Outfit, sans-serif' }}>
                           {formatVND(item.price)}
-                        </div>
-                        <div style={{ fontSize: '0.8rem', color: '#8c8c8c', textDecoration: 'line-through' }}>
-                          {formatVND(Math.round(item.price * 1.5))}
                         </div>
                       </div>
 
@@ -200,28 +197,11 @@ export default function CartModal({
 
               {/* Order Summary Box */}
               <div style={{ background: '#f7f9fa', border: '1px solid #e4e8eb', borderRadius: 8, padding: 22 }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                  <span style={{ fontSize: '0.95rem', color: '#6a6f73' }}>Tạm tính ({cartItems.length} khóa học):</span>
-                  <span style={{ fontSize: '1.05rem', color: '#6a6f73', textDecoration: 'line-through' }}>
-                    {formatVND(totalOriginalPrice)}
-                  </span>
-                </div>
-
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
-                  <div>
-                    <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1c1d1f' }}>Tổng thanh toán:</span>
-                    <div style={{ fontSize: '0.8rem', color: '#0d6832', display: 'flex', alignItems: 'center', gap: 4, marginTop: 2 }}>
-                      <CheckCircle2 size={14} /> Tiết kiệm {formatVND(totalOriginalPrice - totalPrice)} (33%)
-                    </div>
-                  </div>
+                  <span style={{ fontSize: '1.1rem', fontWeight: 700, color: '#1c1d1f' }}>Tổng thanh toán:</span>
                   <div style={{ fontSize: '1.8rem', fontWeight: 800, color: '#a435f0', fontFamily: 'Outfit, sans-serif' }}>
                     {formatVND(totalPrice)}
                   </div>
-                </div>
-
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: '0.82rem', color: '#0d6832', marginBottom: 20 }}>
-                  <ShieldCheck size={18} />
-                  <span>Bảo đảm hoàn tiền 100% trong 7 ngày nếu không hài lòng với chất lượng bài giảng.</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>

@@ -1,9 +1,9 @@
 import React from 'react';
 import { MessageSquare, Eye, PenSquare, Trash2 } from 'lucide-react';
-import { communityArticles } from '../data/mockData';
 
-export default function ArticlesSection({ 
-  articles = communityArticles, 
+export default function ArticlesSection({
+  articles = [],
+  loadError = false,
   onOpenArticle, 
   onCreateArticle,
   onDeleteArticle,
@@ -24,6 +24,7 @@ export default function ArticlesSection({
           </button>
         </div>
 
+        {articles.length > 0 ? (
         <div className="ud-articles-grid">
           {articles.map((art) => {
             const isAuthor = currentUser && (
@@ -41,7 +42,7 @@ export default function ArticlesSection({
                 onClick={() => onOpenArticle && onOpenArticle(art)}
               >
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                  <div className="article-tag" style={{ marginBottom: 0 }}>{art.category || 'Học Tập'}</div>
+                  {art.category && <div className="article-tag" style={{ marginBottom: 0 }}>{art.category}</div>}
                   {canDeleteCard && (
                     <button
                       className="btn-card-delete"
@@ -78,30 +79,47 @@ export default function ArticlesSection({
 
               <div className="article-meta">
                 <div className="article-author">
-                  <img 
-                    src={art.authorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=100&q=80'} 
-                    alt={art.author?.displayName || art.authorNickname || 'Tác giả'} 
-                    className="author-avatar" 
-                  />
+                  {art.authorAvatar ? (
+                    <img
+                      src={art.authorAvatar}
+                      alt={art.author?.displayName || art.authorNickname || 'Tác giả'}
+                      className="author-avatar"
+                    />
+                  ) : (
+                    <span className="author-avatar" aria-hidden="true">
+                      {(art.author?.displayName || art.authorNickname || 'T').charAt(0).toUpperCase()}
+                    </span>
+                  )}
                   <div className="author-info">
                     <span className="author-name">{art.author?.displayName || art.authorNickname || 'Tác giả'}</span>
-                    <span className="article-date">{art.date || 'Gần đây'}</span>
+                    {art.date && <span className="article-date">{art.date}</span>}
                   </div>
                 </div>
 
                 <div className="article-stats">
-                  <span className="stat-item" title="Bình luận">
-                    <MessageSquare size={14} /> {art.commentsCount || (art.comments ? art.comments.length : 0)}
-                  </span>
-                  <span className="stat-item" title="Lượt xem">
-                    <Eye size={14} /> {art.viewsCount || 10}
-                  </span>
+                  {art.commentsCount != null && (
+                    <span className="stat-item" title="Bình luận">
+                      <MessageSquare size={14} /> {art.commentsCount}
+                    </span>
+                  )}
+                  {art.viewsCount != null && (
+                    <span className="stat-item" title="Lượt xem">
+                      <Eye size={14} /> {art.viewsCount}
+                    </span>
+                  )}
                 </div>
               </div>
             </article>
             );
           })}
         </div>
+        ) : (
+          <div className="ud-articles-grid">
+            <p style={{ gridColumn: '1 / -1', textAlign: 'center', color: '#64748b' }}>
+              {loadError ? 'Không thể tải bài viết. Vui lòng thử lại sau.' : 'Chưa có bài viết nào.'}
+            </p>
+          </div>
+        )}
       </div>
     </section>
   );

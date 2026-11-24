@@ -1,5 +1,5 @@
 ﻿import React from 'react';
-import { ArrowRight, Check, Award, DollarSign, Calendar } from 'lucide-react';
+import { ArrowRight, Award, DollarSign, Calendar } from 'lucide-react';
 
 export default function BecomeTutorBanner({ onApplyTutor }) {
   return (
@@ -18,13 +18,13 @@ export default function BecomeTutorBanner({ onApplyTutor }) {
             <span className="badge badge-toprated">Dành cho Giáo viên & Gia sư</span>
             <h2 className="instructor-title">Trở thành Gia sư & Giảng viên trên EduTutor</h2>
             <p className="instructor-desc">
-              Các gia sư hàng đầu từ khắp cả nước đang giảng dạy hàng ngàn học viên trên nền tảng của chúng tôi. Chúng tôi cung cấp công cụ, học viên và quy trình thanh toán minh bạch để bạn tập trung trọn vẹn vào giảng dạy.
+              Tạo hồ sơ gia sư, đăng khóa học hoặc gói dịch vụ và quản lý thông tin giảng dạy trên nền tảng.
             </p>
 
             <div className="instructor-benefits">
               <div className="benefit-item">
                 <DollarSign size={18} className="benefit-icon" />
-                <span>Thu nhập hấp dẫn, chiết khấu nền tảng chỉ từ 10%</span>
+                <span>Xem mức phí áp dụng trước khi xuất bản khóa học hoặc gói dịch vụ</span>
               </div>
               <div className="benefit-item">
                 <Calendar size={18} className="benefit-icon" />

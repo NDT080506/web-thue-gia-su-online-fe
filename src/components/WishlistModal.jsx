@@ -29,7 +29,7 @@ export default function WishlistModal({
 
   const getCourseThumbnail = (courseId) => {
     const found = courses.find(c => c.id === courseId);
-    return found?.image || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=300&q=80';
+    return found?.image || null;
   };
 
   const handleMoveToCart = async (item) => {
@@ -67,7 +67,7 @@ export default function WishlistModal({
         {/* Modal Header */}
         <div className="detail-modal-hero" style={{ padding: '24px 32px' }}>
           <div className="detail-hero-left">
-            <span className="badge badge-bestseller" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8' }}>
+            <span className="badge" style={{ background: '#fdf2f8', color: '#db2777', border: '1px solid #fbcfe8' }}>
               <Heart size={13} fill="#db2777" style={{ display: 'inline', marginRight: 4 }} /> Khóa học yêu thích
             </span>
             <h2 className="detail-title" style={{ fontSize: '1.6rem', marginTop: 8 }}>
@@ -122,11 +122,20 @@ export default function WishlistModal({
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: 14, flex: 1, minWidth: 260 }}>
-                    <img 
-                      src={getCourseThumbnail(item.courseId)} 
-                      alt={item.courseTitle}
-                      style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
-                    />
+                    {getCourseThumbnail(item.courseId) ? (
+                      <img
+                        src={getCourseThumbnail(item.courseId)}
+                        alt={item.courseTitle}
+                        style={{ width: 90, height: 60, objectFit: 'cover', borderRadius: 6, flexShrink: 0 }}
+                      />
+                    ) : (
+                      <div
+                        aria-hidden="true"
+                        style={{ width: 90, height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: 6, background: '#f2f3f5', color: '#6a6f73', flexShrink: 0 }}
+                      >
+                        <BookOpen size={24} />
+                      </div>
+                    )}
                     <div>
                       <h4 
                         style={{ margin: 0, fontSize: '0.98rem', fontWeight: 700, color: '#1c1d1f', cursor: 'pointer', lineHeight: 1.35 }}
@@ -140,9 +149,11 @@ export default function WishlistModal({
                       >
                         {item.courseTitle}
                       </h4>
-                      <div style={{ fontSize: '0.82rem', color: '#6a6f73', marginTop: 4 }}>
-                        Giảng viên: <strong>{item.tutorName || 'Gia sư EduTutor'}</strong>
-                      </div>
+                      {item.tutorName && (
+                        <div style={{ fontSize: '0.82rem', color: '#6a6f73', marginTop: 4 }}>
+                          Giảng viên: <strong>{item.tutorName}</strong>
+                        </div>
+                      )}
                     </div>
                   </div>
 

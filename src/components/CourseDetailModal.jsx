@@ -5,13 +5,9 @@ import {
   Check,
   Clock,
   BookOpen,
-  ShieldCheck,
   Lock,
-  Video,
-  Play,
   PlayCircle,
   Award,
-  Calendar,
   Loader2,
   CheckCircle2,
   Circle,
@@ -19,43 +15,8 @@ import {
 } from 'lucide-react';
 import { courseApi, disputeApi} from '../services/api';
 
-/**
- * Danh sách video bài giảng chất lượng cao theo từng chuyên ngành
- */
-function getSubjectLessons(course) {
-  const title = (course?.title || '').toLowerCase();
-  const category = (course?.category || '').toLowerCase();
-
-  if (title.includes('toán') || title.includes('toan') || category === 'math') {
-    return [
-      { id: 'm1', title: 'Bài 1: Khảo sát sự biến thiên & Vẽ đồ thị hàm số 12 (Thầy Nguyễn Phan Tiến)', mediaUrl: 'https://www.youtube.com/embed/C64H0h3qiRc' },
-      { id: 'm2', title: 'Bài 2: Phương pháp giải nhanh Hàm số Mũ & Logarithm (Thầy Nguyễn Quốc Chí)', mediaUrl: 'https://www.youtube.com/embed/W_8aEs16RI0' },
-      { id: 'm3', title: 'Bài 3: Hình học không gian Oxyz & Kỹ thuật Tọa độ hóa (Toán 12)', mediaUrl: 'https://www.youtube.com/embed/990wEB5yo2k' }
-    ];
-  } else if (title.includes('tiếng anh') || title.includes('ielts') || title.includes('english') || category === 'english') {
-    return [
-      { id: 'e1', title: 'Bài 1: Chuẩn hóa 44 âm IPA & Ngữ điệu tiếng Anh (BBC Learning English)', mediaUrl: 'https://www.youtube.com/embed/IOfEQjlKH64' },
-      { id: 'e2', title: 'Bài 2: Chiến lược trả lời IELTS Speaking Band 8.0+ Part 1 & 2 (IELTS Advantage)', mediaUrl: 'https://www.youtube.com/embed/nJJyilEPwpk' },
-      { id: 'e3', title: 'Bài 3: Bẻ khóa dạng bài IELTS Reading & Kỹ năng Skimming/Scanning', mediaUrl: 'https://www.youtube.com/embed/N0RxRl9allI' }
-    ];
-  } else if (title.includes('vật lý') || title.includes('vat ly') || category === 'physics') {
-    return [
-      { id: 'p1', title: 'Bài 1: Tổng ôn chuyên đề Dao động cơ học & Con lắc lò xo 12 (Thầy Phạm Quốc Toản)', mediaUrl: 'https://www.youtube.com/embed/jhtggbrGPn0' },
-      { id: 'p2', title: 'Bài 2: Phương pháp giải bài toán Sóng cơ học & Giao thoa sóng', mediaUrl: 'https://www.youtube.com/embed/C64H0h3qiRc' },
-      { id: 'p3', title: 'Bài 3: Mạch điện xoay chiều RLC & Kỹ thuật Giản đồ vectơ', mediaUrl: 'https://www.youtube.com/embed/990wEB5yo2k' }
-    ];
-  } else {
-    // Mặc định: IT / Lập trình Java / Spring Boot / React / Python
-    return [
-      { id: 'it1', title: 'Bài 1: Thiết kế kiến trúc Spring Boot 3 & RESTful API chuẩn quốc tế (Amigoscode)', mediaUrl: 'https://www.youtube.com/embed/9SGDpanrc8U' },
-      { id: 'it2', title: 'Bài 2: Lập trình Java Core & Tư duy Hướng đối tượng OOP (Mosh Hamedani)', mediaUrl: 'https://www.youtube.com/embed/eIrMbAQSU34' },
-      { id: 'it3', title: 'Bài 3: Xây dựng Giao diện React Vite & Kết nối API Backend Spring Boot', mediaUrl: 'https://www.youtube.com/embed/SqcY0GlETPk' }
-    ];
-  }
-}
-
 function getVideoEmbedUrl(url) {
-  if (!url) return 'https://www.youtube.com/embed/9SGDpanrc8U?enablejsapi=1';
+  if (!url) return '';
   let parsedUrl;
   try {
     parsedUrl = new URL(url);
@@ -106,6 +67,7 @@ export default function CourseDetailModal({
 }) {
   const [lessons, setLessons] = useState([]);
   const [isLoadingLessons, setIsLoadingLessons] = useState(false);
+  const [lessonsLoadError, setLessonsLoadError] = useState(false);
   const [isEnrolling, setIsEnrolling] = useState(false);
   const [localEnrolled, setLocalEnrolled] = useState(false);
   const [activeVideoLesson, setActiveVideoLesson] = useState(null);
@@ -127,6 +89,7 @@ export default function CourseDetailModal({
     setAutoCompletedAlert(null);
     setCurrentEnrollment(null);
     setDisputeSubmitted(false);
+    setLessonsLoadError(false);
 
     // 1. Tải danh sách bài học đã hoàn thành từ localStorage
     const storageKey = `course_completed_lessons_${currentUser?.id || 'guest'}_${course.id}`;
@@ -165,28 +128,16 @@ export default function CourseDetailModal({
         });
     }
 
-    // 3. Tải danh sách bài học từ Backend hoặc Fallback theo môn
+    // 3. Tải danh sách bài học từ Backend
     async function fetchLessons() {
       setIsLoadingLessons(true);
       try {
         const data = await courseApi.getLessons(course.id);
-        const subjectDefaults = getSubjectLessons(course);
-
-        if (data && Array.isArray(data) && data.length > 0) {
-          const sanitized = data.map((l, i) => {
-            let url = l.mediaUrl;
-            if (!url || url.includes('dQw4w9WgXcQ')) {
-              url = subjectDefaults[i % subjectDefaults.length].mediaUrl;
-            }
-            return { ...l, mediaUrl: url };
-          });
-          setLessons(sanitized);
-        } else {
-          setLessons(subjectDefaults);
-        }
+        setLessons(Array.isArray(data) ? data : []);
       } catch (err) {
-        console.warn('Lấy bài học từ Backend thất bại, sử dụng giáo trình chuẩn:', err);
-        setLessons(getSubjectLessons(course));
+        console.warn('Lỗi lấy bài học từ Backend:', err);
+        setLessons([]);
+        setLessonsLoadError(true);
       } finally {
         setIsLoadingLessons(false);
       }
@@ -336,6 +287,11 @@ export default function CourseDetailModal({
       return;
     }
 
+    if (course.price == null) {
+      alert('Khóa học chưa có học phí để ghi danh. Vui lòng liên hệ gia sư.');
+      return;
+    }
+
     setIsEnrolling(true);
     try {
       if (onEnroll) {
@@ -361,31 +317,34 @@ export default function CourseDetailModal({
         {/* Modal Hero Banner */}
         <div className="detail-modal-hero">
           <div className="detail-hero-left">
-            <span className="badge badge-bestseller">{course.badge || 'Khóa học tiêu biểu'}</span>
+            {course.badge && <span className="badge badge-bestseller">{course.badge}</span>}
             <h2 className="detail-title">{course.title}</h2>
-            <p className="detail-sub">{course.highlights ? course.highlights[0] : ''}</p>
+            <p className="detail-sub">{course.highlights?.[0] || ''}</p>
 
-            <div className="detail-rating-row">
-              <span className="rating-score">{Number(course.rating || 4.9).toFixed(1)}</span>
-              <div className="rating-stars">
-                {[...Array(5)].map((_, i) => (
-                  <Star key={i} size={15} fill="#b4690e" stroke="#b4690e" />
-                ))}
+            {(course.rating != null || course.ratingCount != null || course.studentCount != null || course.enrollmentCount != null) && (
+              <div className="detail-rating-row">
+                {course.rating != null && (
+                  <>
+                    <span className="rating-score">{Number(course.rating).toFixed(1)}</span>
+                    <div className="rating-stars">
+                      {[...Array(Math.max(0, Math.min(5, Math.round(Number(course.rating)))))].map((_, i) => (
+                        <Star key={i} size={15} fill="#b4690e" stroke="#b4690e" />
+                      ))}
+                    </div>
+                  </>
+                )}
+                {course.ratingCount != null && <span className="rating-count">({Number(course.ratingCount).toLocaleString()} đánh giá)</span>}
+                {(course.studentCount != null || course.enrollmentCount != null) && (
+                  <span className="detail-students">{Number(course.studentCount ?? course.enrollmentCount).toLocaleString()} học viên</span>
+                )}
               </div>
-              <span className="rating-count">({(course.ratingCount || 1200).toLocaleString()} đánh giá)</span>
-              <span className="stat-divider">•</span>
-              <span className="detail-students">Hơn 4.200 học viên</span>
-            </div>
+            )}
 
             <div className="detail-instructor-author">
-              <img
-                src={course.instructorAvatar || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80'}
-                alt={course.instructor}
-                className="author-img"
-              />
+              {course.instructorAvatar && <img src={course.instructorAvatar} alt={course.instructor || ''} className="author-img" />}
               <div>
-                <span>Giảng viên: <strong>{course.instructor || 'Gia sư EduTutor'}</strong></span>
-                <p className="author-role-sub">{course.instructorRole || 'Giảng viên chuyên môn cao'}</p>
+                {course.instructor && <span>Giảng viên: <strong>{course.instructor}</strong></span>}
+                {course.instructorRole && <p className="author-role-sub">{course.instructorRole}</p>}
               </div>
             </div>
           </div>
@@ -675,6 +634,14 @@ export default function CourseDetailModal({
                   <Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} />
                   <p>Đang tải danh sách bài giảng...</p>
                 </div>
+              ) : lessonsLoadError ? (
+                <p style={{ padding: 20, color: '#b91c1c', textAlign: 'center' }}>
+                  Không thể tải danh sách bài học. Vui lòng thử lại sau.
+                </p>
+              ) : lessons.length === 0 ? (
+                <p style={{ padding: 20, color: '#64748b', textAlign: 'center' }}>
+                  Khóa học chưa có bài học.
+                </p>
               ) : (
                 <div className="lessons-list">
                   {lessons.map((lesson, idx) => {
@@ -693,68 +660,72 @@ export default function CourseDetailModal({
                               {lesson.title}
                             </span>
                             <span className="lesson-time">
-                              Video bài giảng quay sẵn Full HD • {isDone ? 'Đã hoàn thành' : 'Xem xong tự động tính %'}
+                              {lesson.mediaUrl ? 'Video bài giảng' : 'Chưa có video'}
+                              {isDone ? ' • Đã hoàn thành' : ''}
                             </span>
                           </div>
                         </div>
 
                         <div className="lesson-right" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           {effectivelyEnrolled ? (
-                            <>
-                              <button
-                                type="button"
-                                onClick={() => handleToggleLessonCompleted(lesson.id || String(idx))}
-                                title={isDone ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu đã học xong'}
-                                style={{
-                                  fontSize: '0.78rem',
-                                  padding: '5px 10px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 5,
-                                  borderRadius: '6px',
-                                  border: isDone ? '1px solid #16a34a' : '1px solid #cbd5e1',
-                                  backgroundColor: isDone ? '#f0fdf4' : '#ffffff',
-                                  color: isDone ? '#16a34a' : '#64748b',
-                                  cursor: 'pointer',
-                                  fontWeight: 500,
-                                  transition: 'all 0.2s',
-                                }}
-                              >
-                                {isDone ? (
-                                  <>
-                                    <CheckCircle2 size={14} color="#16a34a" />
-                                    <span>Đã xong</span>
-                                  </>
-                                ) : (
-                                  <>
-                                    <Circle size={14} />
-                                    <span>Chưa học</span>
-                                  </>
-                                )}
-                              </button>
-
-                              <button
-                                type="button"
-                                onClick={() => {
-                                  setActiveVideoLesson(lesson);
-                                  setAutoCompletedAlert(null);
-                                }}
-                                className="btn btn-primary"
-                                style={{
-                                  fontSize: '0.82rem',
-                                  padding: '6px 14px',
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: 6,
-                                  backgroundColor: activeVideoLesson?.id === lesson.id ? '#0d6832' : '#a435f0',
-                                  borderColor: activeVideoLesson?.id === lesson.id ? '#0d6832' : '#a435f0',
-                                  cursor: 'pointer',
-                                }}
-                              >
-                                <PlayCircle size={15} />
-                                {activeVideoLesson?.id === lesson.id ? 'Đang phát' : 'Xem video'}
-                              </button>
-                            </>
+                            lesson.mediaUrl ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleToggleLessonCompleted(lesson.id || String(idx))}
+                                  title={isDone ? 'Đánh dấu chưa hoàn thành' : 'Đánh dấu đã học xong'}
+                                  style={{
+                                    fontSize: '0.78rem',
+                                    padding: '5px 10px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 5,
+                                    borderRadius: '6px',
+                                    border: isDone ? '1px solid #16a34a' : '1px solid #cbd5e1',
+                                    backgroundColor: isDone ? '#f0fdf4' : '#ffffff',
+                                    color: isDone ? '#16a34a' : '#64748b',
+                                    cursor: 'pointer',
+                                    fontWeight: 500,
+                                    transition: 'all 0.2s',
+                                  }}
+                                >
+                                  {isDone ? (
+                                    <>
+                                      <CheckCircle2 size={14} color="#16a34a" />
+                                      <span>Đã xong</span>
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Circle size={14} />
+                                      <span>Chưa học</span>
+                                    </>
+                                  )}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setActiveVideoLesson(lesson);
+                                    setAutoCompletedAlert(null);
+                                  }}
+                                  className="btn btn-primary"
+                                  style={{
+                                    fontSize: '0.82rem',
+                                    padding: '6px 14px',
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    backgroundColor: activeVideoLesson?.id === lesson.id ? '#0d6832' : '#a435f0',
+                                    borderColor: activeVideoLesson?.id === lesson.id ? '#0d6832' : '#a435f0',
+                                    cursor: 'pointer',
+                                  }}
+                                >
+                                  <PlayCircle size={15} />
+                                  {activeVideoLesson?.id === lesson.id ? 'Đang phát' : 'Xem video'}
+                                </button>
+                              </>
+                            ) : (
+                              <span style={{ fontSize: '0.78rem', color: '#64748b' }}>Chưa có video</span>
+                            )
                           ) : (
                             <span className="lesson-locked" title="Đăng ký khóa học để xem trọn bộ video bài giảng">
                               <Lock size={14} /> Video khóa
@@ -772,10 +743,8 @@ export default function CourseDetailModal({
             <div className="course-includes">
               <h4>Khóa học này bao gồm:</h4>
               <div className="includes-list">
-                <div className="inc-item"><Clock size={16} /> {course.hours || '24 giờ'} video bài giảng chất lượng cao</div>
-                <div className="inc-item"><BookOpen size={16} /> {lessons.length || 3} video bài học theo lộ trình</div>
-                <div className="inc-item"><Award size={16} /> Chứng chỉ hoàn thành khóa học</div>
-                <div className="inc-item"><ShieldCheck size={16} /> Quyền sở hữu trọn đời & xem trên mọi thiết bị</div>
+                {course.hours && <div className="inc-item"><Clock size={16} /> {course.hours} video bài giảng</div>}
+                <div className="inc-item"><BookOpen size={16} /> {lessons.length} bài học</div>
               </div>
             </div>
           </div>
@@ -784,18 +753,12 @@ export default function CourseDetailModal({
           <div className="detail-sidebar">
             <div className="detail-card-preview">
               <div className="preview-video-box">
-                <img src={course.thumbnail} alt={course.title} className="video-thumb" />
-                <div className="play-overlay">
-                  <div className="play-btn-circle">
-                    <Play size={24} fill="#ffffff" />
-                  </div>
-                  <span>Xem trước khóa học</span>
-                </div>
+                {course.thumbnail && <img src={course.thumbnail} alt={course.title} className="video-thumb" />}
               </div>
 
               <div className="sidebar-pricing">
                 <div className="price-row">
-                  <span className="huge-price">{formatVND(course.price)}</span>
+                  <span className="huge-price">{course.price != null ? formatVND(course.price) : 'Chưa cập nhật học phí'}</span>
                   {course.originalPrice && (
                     <span className="strike-price">{formatVND(course.originalPrice)}</span>
                   )}
@@ -839,9 +802,6 @@ export default function CourseDetailModal({
                   </div>
                 )}
 
-                <p className="guarantee-note">
-                  Đảm bảo hoàn tiền trong 7 ngày nếu không hài lòng.
-                </p>
               </div>
             </div>
           </div>

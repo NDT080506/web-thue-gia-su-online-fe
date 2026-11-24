@@ -10,8 +10,8 @@ export default function ValueProps() {
     },
     {
       icon: ShieldCheck,
-      title: 'Gia Sư Kiểm Duyệt 100%',
-      desc: 'Hồ sơ, bằng cấp, chứng chỉ và kinh nghiệm giảng dạy được thẩm định nghiêm ngặt.'
+      title: 'Trạng Thái Xác Minh Hồ Sơ',
+      desc: 'Trạng thái xác minh được hiển thị theo thông tin hiện có trên hệ thống.'
     },
     {
       icon: Clock,
@@ -20,8 +20,8 @@ export default function ValueProps() {
     },
     {
       icon: MessageSquareQuote,
-      title: 'Hỗ Trợ & Hoàn Tiền An Tâm',
-      desc: 'Chính sách hoàn tiền trong 7 ngày nếu không hài lòng chất lượng buổi học.'
+      title: 'Theo Dõi Thanh Toán',
+      desc: 'Xem trạng thái giao dịch và các khoản thanh toán trong tài khoản của bạn.'
     }
   ];
 

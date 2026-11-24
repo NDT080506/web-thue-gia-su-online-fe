@@ -10,7 +10,7 @@ import {
   Sparkles,
   ArrowRight
 } from 'lucide-react';
-import { categories } from '../data/mockData';
+import { categories } from '../data/categories';
 
 const iconMap = {
   Calculator,
@@ -49,7 +49,6 @@ export default function CategoriesGrid({ onSelectCategory }) {
                   <IconComponent size={28} />
                 </div>
                 <h3 className="category-title">{cat.name}</h3>
-                <p className="category-count">{cat.count}</p>
                 <span className="category-arrow">
                   <ArrowRight size={16} />
                 </span>

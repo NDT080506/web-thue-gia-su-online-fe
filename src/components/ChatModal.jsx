@@ -38,7 +38,7 @@ export default function ChatModal({
   const partnerRole = tutor 
     ? 'Gia sư 1-1' 
     : (currentUser?.role === 'STUDENT' ? 'Gia sư 1-1' : 'Học viên');
-  const partnerAvatar = tutor?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=120&q=80';
+  const partnerAvatar = tutor?.avatar || targetStudent?.avatar || null;
 
   // Tự động cuộn xuống tin nhắn mới nhất
   const scrollToBottom = () => {
@@ -207,12 +207,20 @@ export default function ChatModal({
         <div style={{ padding: '16px 24px', background: '#1c1d1f', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
             <div style={{ position: 'relative' }}>
-              <img 
-                src={partnerAvatar} 
-                alt={partnerName} 
-                style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #a435f0' }} 
-              />
-              <span style={{ position: 'absolute', bottom: 0, right: 0, width: 12, height: 12, backgroundColor: '#22c55e', borderRadius: '50%', border: '2px solid #1c1d1f' }}></span>
+              {partnerAvatar ? (
+                <img
+                  src={partnerAvatar}
+                  alt={partnerName}
+                  style={{ width: 44, height: 44, borderRadius: '50%', objectFit: 'cover', border: '2px solid #a435f0' }}
+                />
+              ) : (
+                <div
+                  aria-hidden="true"
+                  style={{ width: 44, height: 44, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ede9fe', color: '#6d28d9', fontWeight: 700 }}
+                >
+                  {partnerName?.charAt(0)?.toUpperCase() || <User size={20} />}
+                </div>
+              )}
             </div>
 
             <div>
@@ -220,9 +228,6 @@ export default function ChatModal({
                 {partnerName}
               </h3>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                <span style={{ fontSize: '0.78rem', color: '#22c55e', fontWeight: 600 }}>
-                  ● Đang hoạt động (Thời gian thực)
-                </span>
                 <span style={{ fontSize: '0.75rem', color: '#8c8c8c' }}>• {partnerRole}</span>
               </div>
             </div>
@@ -333,7 +338,7 @@ export default function ChatModal({
               </p>
             </div>
           ) : (
-            messages.map((msg) => {
+            messages.map((msg, index) => {
               const isMe = msg.senderId === currentUser?.id;
               const timeStr = msg.createdAt 
                 ? new Date(msg.createdAt).toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) 
@@ -341,7 +346,7 @@ export default function ChatModal({
 
               return (
                 <div 
-                  key={msg.id || Math.random()} 
+                  key={msg.id || index}
                   style={{ 
                     display: 'flex', 
                     flexDirection: 'column', 

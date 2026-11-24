@@ -9,7 +9,6 @@ import {
   Loader2, 
   User, 
   MessageSquare,
-  Sparkles,
   RefreshCw,
   GraduationCap
 } from 'lucide-react';
@@ -96,18 +95,15 @@ export default function ConversationsModal({
     const isStudent = currentUser?.role === 'STUDENT';
 
     if (isStudent) {
-      const defaultAvatar =
-        'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=150&q=80';
-
       return {
         name: conv.tutorName || 'Gia sư',
-        role: 'Gia sư chuyên nghiệp',
-        avatar: conv.tutorAvatar || defaultAvatar,
+        role: 'Gia sư',
+        avatar: conv.tutorAvatar || null,
         tutorObject: {
           id: conv.tutorId,
           name: conv.tutorName || 'Gia sư',
           displayName: conv.tutorName || 'Gia sư',
-          avatar: conv.tutorAvatar || defaultAvatar,
+          avatar: conv.tutorAvatar || '',
           title: conv.tutorTitle || '',
           degree: conv.tutorDegree || '',
         },
@@ -117,9 +113,7 @@ export default function ConversationsModal({
     return {
       name: conv.studentName || 'Học viên',
       role: 'Học viên',
-      avatar:
-        conv.studentAvatar ||
-        'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=150&q=80',
+      avatar: conv.studentAvatar || null,
       studentObject: {
         id: conv.studentId,
         displayName: conv.studentName || 'Học viên',
@@ -293,22 +287,21 @@ export default function ConversationsModal({
                   >
                     {/* Left: Avatar & Info */}
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14, minWidth: 0, flex: 1 }}>
-                      <div style={{ position: 'relative', flexShrink: 0 }}>
-                        <img 
-                          src={partner.avatar} 
-                          alt={partner.name}
-                          style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid #f0f0f0' }}
-                        />
-                        <span style={{
-                          position: 'absolute',
-                          bottom: 2,
-                          right: 2,
-                          width: 12,
-                          height: 12,
-                          borderRadius: '50%',
-                          backgroundColor: '#10b981',
-                          border: '2px solid #fff'
-                        }} title="Trực tuyến" />
+                      <div style={{ flexShrink: 0 }}>
+                        {partner.avatar ? (
+                          <img
+                            src={partner.avatar}
+                            alt={partner.name}
+                            style={{ width: 50, height: 50, borderRadius: '50%', objectFit: 'cover', border: '2px solid #f0f0f0' }}
+                          />
+                        ) : (
+                          <div
+                            aria-hidden="true"
+                            style={{ width: 50, height: 50, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ede9fe', color: '#6d28d9', fontWeight: 700 }}
+                          >
+                            {partner.name.charAt(0).toUpperCase() || <User size={22} />}
+                          </div>
+                        )}
                       </div>
 
                       <div style={{ minWidth: 0, flex: 1 }}>

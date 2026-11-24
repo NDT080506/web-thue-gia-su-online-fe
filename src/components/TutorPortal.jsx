@@ -54,6 +54,18 @@ const toDateTimeLocal = (value) => {
 
 const toIsoDateTime = (value) => value ? new Date(value).toISOString() : null;
 
+const isDeletionConstraintError = (error) => {
+  const errorDetails = [
+    error?.message,
+    error?.data?.message,
+    error?.data?.error,
+    error?.data?.detail
+  ].filter(Boolean).join(' ').toLowerCase();
+
+  return error?.status === 409
+    || /constraint|foreign.?key|integrity|enrollment|enrolment|booking|appointment|ghi danh|đặt lịch|ràng buộc/.test(errorDetails);
+};
+
 export default function TutorPortal({
   currentUser,
   userWallet,
@@ -90,7 +102,7 @@ export default function TutorPortal({
   const [editingCourse, setEditingCourse] = useState(null);
   const [courseForm, setCourseForm] = useState({
     title: '',
-    price: 399000,
+    price: 0,
     platformFeePercent: 10,
     active: true
   });
@@ -105,7 +117,7 @@ export default function TutorPortal({
   const [editingPackage, setEditingPackage] = useState(null);
   const [packageForm, setPackageForm] = useState({
     name: '',
-    price: 450000,
+    price: 0,
     platformFeePercent: 10,
     active: true
   });
@@ -224,7 +236,7 @@ export default function TutorPortal({
     setLessonsLoadError(false);
     setCourseForm({
       title: '',
-      price: 399000,
+      price: 0,
       platformFeePercent: 10,
       active: true
     });
@@ -390,7 +402,11 @@ export default function TutorPortal({
       showNotice(`Đã xóa khóa học "${courseTitle}"`);
       setCourses(prev => prev.filter(c => c.id !== courseId));
     } catch (err) {
-      showNotice(err.data?.message || err.message || 'Không thể xóa khóa học', true);
+      if (isDeletionConstraintError(err)) {
+        showNotice('Không thể xóa khóa học vì đang có học viên ghi danh hoặc dữ liệu liên quan đang ràng buộc.', true);
+      } else {
+        showNotice(err?.data?.message || err?.message || 'Không thể xóa khóa học', true);
+      }
     } finally {
       setProcessingId(null);
     }
@@ -458,7 +474,7 @@ export default function TutorPortal({
     setEditingPackage(null);
     setPackageForm({
       name: '',
-      price: 450000,
+      price: 0,
       platformFeePercent: 10,
       active: true
     });
@@ -520,7 +536,11 @@ export default function TutorPortal({
       showNotice(`Đã xóa gói dịch vụ "${packageName}"`);
       setPackages(prev => prev.filter(p => p.id !== packageId));
     } catch (err) {
-      showNotice(err.data?.message || err.message || 'Không thể xóa gói dịch vụ', true);
+      if (isDeletionConstraintError(err)) {
+        showNotice('Không thể xóa gói dịch vụ vì đang có booking hoặc dữ liệu liên quan đang ràng buộc.', true);
+      } else {
+        showNotice(err?.data?.message || err?.message || 'Không thể xóa gói dịch vụ', true);
+      }
     } finally {
       setProcessingId(null);
     }
@@ -735,7 +755,7 @@ export default function TutorPortal({
                 {currentUser?.displayName || currentUser?.username || 'Gia sư'}
               </span>
               <span style={{ fontSize: '0.72rem', color: '#c4b5fd' }}>
-                Gia sư chuyên nghiệp
+                Cổng thông tin gia sư
               </span>
             </div>
           </div>
@@ -2175,9 +2195,9 @@ export default function TutorPortal({
                 </div>
               ) : (
                 <div style={{ display: 'grid', gap: 16 }}>
-                  {reviews.map((rev) => (
+                  {reviews.map((rev, index) => (
                     <div
-                      key={rev.id || Math.random()}
+                      key={rev.id || index}
                       style={{
                         background: '#ffffff',
                         borderRadius: 10,
@@ -2188,21 +2208,25 @@ export default function TutorPortal({
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                          {[1, 2, 3, 4, 5].map((s) => (
+                          {rev.rating != null && [1, 2, 3, 4, 5].map((s) => (
                             <Star
                               key={s}
                               size={16}
                               color="#f59e0b"
-                              fill={s <= (rev.rating || 5) ? '#f59e0b' : 'none'}
+                            fill={s <= rev.rating ? '#f59e0b' : 'none'}
                             />
                           ))}
-                          <strong style={{ fontSize: '0.95rem', color: '#b45309', marginLeft: 4 }}>
-                            {rev.rating || 5.0} / 5
-                          </strong>
+                          {rev.rating != null && (
+                            <strong style={{ fontSize: '0.95rem', color: '#b45309', marginLeft: 4 }}>
+                              {rev.rating} / 5
+                            </strong>
+                          )}
                         </div>
-                        <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
-                          {rev.createdAt ? new Date(rev.createdAt).toLocaleDateString('vi-VN') : 'Gần đây'}
-                        </span>
+                        {rev.createdAt && (
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}>
+                            {new Date(rev.createdAt).toLocaleDateString('vi-VN')}
+                          </span>
+                        )}
                       </div>
 
                       <p style={{ margin: '0 0 10px 0', fontSize: '0.92rem', color: '#334155', lineHeight: 1.5 }}>

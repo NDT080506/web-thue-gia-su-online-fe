@@ -3,6 +3,8 @@ import {
   X,
   ShieldCheck,
   Wallet,
+  BookOpen,
+  User,
   CheckCircle2,
   AlertCircle,
   Loader2,
@@ -314,23 +316,41 @@ export default function PaymentCheckoutModal({
                 marginBottom: 20
               }}>
                 {type === 'course' ? (
-                  <img
-                    src={item?.thumbnail || 'https://images.unsplash.com/photo-1516321318423-f06f85e504b3?auto=format&fit=crop&w=160&q=80'}
-                    alt={item?.title}
-                    style={{ width: 88, height: 60, borderRadius: 6, objectFit: 'cover' }}
-                  />
+                  item?.thumbnail ? (
+                    <img
+                      src={item.thumbnail}
+                      alt={item?.title}
+                      style={{ width: 88, height: 60, borderRadius: 6, objectFit: 'cover' }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{ width: 88, height: 60, borderRadius: 6, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e2e8f0', color: '#64748b', flexShrink: 0 }}
+                    >
+                      <BookOpen size={24} />
+                    </div>
+                  )
                 ) : (
-                  <img
-                    src={item?.tutor?.avatar || item?.avatar || 'https://images.unsplash.com/photo-1573497019940-1c28c88b4f3e?auto=format&fit=crop&w=160&q=80'}
-                    alt="Tutor"
-                    style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #a435f0' }}
-                  />
+                  (item?.tutor?.avatar || item?.avatar) ? (
+                    <img
+                      src={item?.tutor?.avatar || item?.avatar}
+                      alt={item?.tutor?.name || item?.tutorName || 'Gia sư'}
+                      style={{ width: 64, height: 64, borderRadius: '50%', objectFit: 'cover', border: '2px solid #a435f0' }}
+                    />
+                  ) : (
+                    <div
+                      aria-hidden="true"
+                      style={{ width: 64, height: 64, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ede9fe', color: '#6d28d9', flexShrink: 0 }}
+                    >
+                      <User size={28} />
+                    </div>
+                  )
                 )}
 
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
-                    <span className="badge badge-bestseller" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
-                      {type === 'course' ? 'Khóa học Online (Video)' : '🤝 Gói Môi Giới Gia Sư'}
+                    <span className="badge" style={{ fontSize: '0.7rem', padding: '2px 6px' }}>
+                      {type === 'course' ? 'Khóa học' : 'Gói môi giới gia sư'}
                     </span>
                   </div>
                   <h4 style={{ margin: 0, fontSize: '1rem', fontWeight: 700, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
@@ -338,8 +358,8 @@ export default function PaymentCheckoutModal({
                   </h4>
                   <p style={{ margin: '2px 0 0', fontSize: '0.82rem', color: '#6a6f73' }}>
                     {type === 'course'
-                      ? `Giảng viên: ${item?.instructor || 'Gia sư EduTutor'}`
-                      : `Gia sư: ${item?.tutor?.name || item?.tutorName || 'ThS. Đặng Thị Bích Thủy'}`}
+                      ? (item?.instructor && `Giảng viên: ${item.instructor}`)
+                      : ((item?.tutor?.name || item?.tutorName) && `Gia sư: ${item.tutor?.name || item.tutorName}`)}
                   </p>
                 </div>
 

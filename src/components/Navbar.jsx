@@ -10,7 +10,6 @@ import {
   GraduationCap,
   BookOpen,
   User,
-  Sparkles,
   LogOut,
   X,
   MessageCircle,
@@ -19,7 +18,7 @@ import {
   ArrowRight,
   PlusCircle
 } from 'lucide-react';
-import { categories } from '../data/mockData';
+import { categories } from '../data/categories';
 
 function removeVietnameseTones(str) {
   if (!str) return '';
@@ -170,16 +169,6 @@ export default function Navbar({
 
   return (
     <header className="ud-navbar-wrapper">
-      {/* Top promotional bar */}
-      <div className="ud-top-bar">
-        <div className="container ud-top-bar-content">
-          <p>
-            <Sparkles size={14} className="inline-icon" />
-            <strong>Ưu đãi tháng 10:</strong> Giảm tới <strong>60%</strong> các khóa học và tặng <strong>1 buổi học thử 1-1</strong> với Gia sư đạt chuẩn!
-          </p>
-        </div>
-      </div>
-
       {/* Main Navbar */}
       <nav className="ud-navbar">
         <div className="container ud-navbar-inner">
@@ -224,7 +213,6 @@ export default function Navbar({
                       <BookOpen size={16} className="cat-icon" />
                       <div className="cat-info">
                         <span className="cat-name">{cat.name}</span>
-                        <span className="cat-count">{cat.count}</span>
                       </div>
                     </a>
                   ))}
@@ -321,21 +309,25 @@ export default function Navbar({
                           onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
                         >
-                          <img
-                            src={c.thumbnail}
-                            alt={c.title}
-                            style={{ width: 52, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
-                          />
+                          {c.thumbnail && (
+                            <img
+                              src={c.thumbnail}
+                              alt={c.title}
+                              style={{ width: 52, height: 36, borderRadius: 6, objectFit: 'cover', flexShrink: 0 }}
+                            />
+                          )}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {c.title}
                             </div>
                             <div style={{ fontSize: '0.76rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              Giảng viên: {c.instructor}
+                              {c.instructor && `Giảng viên: ${c.instructor}`}
                             </div>
                           </div>
                           <div style={{ fontSize: '0.86rem', fontWeight: 700, color: '#a435f0', flexShrink: 0, whiteSpace: 'nowrap' }}>
-                            {new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price || 0)}
+                            {c.price != null
+                              ? new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(c.price)
+                              : 'Chưa cập nhật học phí'}
                           </div>
                         </div>
                       ))}
@@ -368,22 +360,30 @@ export default function Navbar({
                           onMouseEnter={(e) => e.currentTarget.style.background = '#f8fafc'}
                           onMouseLeave={(e) => e.currentTarget.style.background = '#ffffff'}
                         >
-                          <img
-                            src={t.avatar}
-                            alt={t.name}
-                            style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #a435f0' }}
-                          />
+                          {t.avatar ? (
+                            <img
+                              src={t.avatar}
+                              alt={t.name}
+                              style={{ width: 40, height: 40, borderRadius: '50%', objectFit: 'cover', flexShrink: 0, border: '2px solid #a435f0' }}
+                            />
+                          ) : (
+                            <span aria-label={t.name} style={{ width: 40, height: 40, borderRadius: '50%', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#ede9fe', color: '#6d28d9', fontWeight: 700 }}>
+                              {t.name?.charAt(0) || '?'}
+                            </span>
+                          )}
                           <div style={{ flex: 1, minWidth: 0 }}>
                             <div style={{ fontSize: '0.88rem', fontWeight: 600, color: '#1c1d1f', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
                               {t.name}
                             </div>
                             <div style={{ fontSize: '0.76rem', color: '#64748b', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                              {t.title} • {t.degree}
+                              {[t.title, t.degree].filter(Boolean).join(' • ')}
                             </div>
                           </div>
-                          <div style={{ fontSize: '0.8rem', color: '#b4690e', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
-                            ★ {Number(t.rating || 5.0).toFixed(1)}
-                          </div>
+                          {t.rating != null && (
+                            <div style={{ fontSize: '0.8rem', color: '#b4690e', fontWeight: 700, flexShrink: 0, whiteSpace: 'nowrap' }}>
+                              ★ {Number(t.rating).toFixed(1)}
+                            </div>
+                          )}
                         </div>
                       ))}
                     </div>
@@ -737,7 +737,7 @@ export default function Navbar({
                               : (currentUser.role === 'TUTOR' ? '1px solid #d8b4fe' : '1px solid #bfdbfe')
                           }}
                         >
-                          Vai trò: {currentUser.role === 'ADMIN' ? 'Quản trị viên hệ thống (Admin)' : (currentUser.role === 'TUTOR' ? 'Gia sư chuyên nghiệp' : 'Học viên')}
+                          Vai trò: {currentUser.role === 'ADMIN' ? 'Quản trị viên hệ thống (Admin)' : (currentUser.role === 'TUTOR' ? 'Gia sư' : 'Học viên')}
                         </span>
                       </div>
                       <div className="menu-divider"></div>

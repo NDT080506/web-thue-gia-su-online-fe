@@ -174,13 +174,27 @@ export default function BookTutorModal({
             <h2 className="detail-title" style={{ fontSize: '1.6rem', marginTop: 8 }}>
               Đăng ký Dịch vụ Môi giới & Kết nối Gia sư cùng {tutor.name}
             </h2>
-            <p className="detail-sub">{tutor.title} • {tutor.degree}</p>
+            {(tutor.title || tutor.degree) && (
+              <p className="detail-sub">{[tutor.title, tutor.degree].filter(Boolean).join(' • ')}</p>
+            )}
 
             <div className="detail-instructor-author" style={{ marginTop: 12 }}>
-              <img src={tutor.avatar} alt={tutor.name} className="author-img" />
+              {tutor.avatar ? (
+                <img src={tutor.avatar} alt={tutor.name} className="author-img" />
+              ) : (
+                <div className="author-img" aria-label={tutor.name} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#e2e8f0', color: '#475569', fontWeight: 700 }}>
+                  {tutor.name?.charAt(0) || '?'}
+                </div>
+              )}
               <div>
                 <span>Gia sư: <strong>{tutor.name}</strong></span>
-                <p className="author-role-sub">⭐ {Number(tutor.rating || 5.0).toFixed(1)} ({tutor.reviews || 120} đánh giá) • {tutor.students || 200} học sinh</p>
+                {(tutor.rating != null || tutor.reviews != null || tutor.students != null) && (
+                  <p className="author-role-sub">
+                    {tutor.rating != null && <>⭐ {Number(tutor.rating).toFixed(1)}</>}
+                    {tutor.reviews != null && ` • ${tutor.reviews} đánh giá`}
+                    {tutor.students != null && ` • ${tutor.students} học sinh`}
+                  </p>
+                )}
               </div>
             </div>
           </div>
