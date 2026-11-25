@@ -32,7 +32,6 @@ export default function TutorCoursePackageManager({
   isOpen,
   onClose,
   currentUser,
-  onWalletUpdated,
   onDataChanged
 }) {
   const [activeTab, setActiveTab] = useState('courses');
@@ -329,44 +328,6 @@ export default function TutorCoursePackageManager({
         error.data?.message ||
         error.message ||
         'Không thể xóa gói dịch vụ.'
-      );
-    } finally {
-      setProcessingId(null);
-    }
-  };
-
-  // ==================== COMPLETE ENROLLMENT ====================
-
-  const handleCompleteEnrollment = async (enrollment) => {
-    const confirmed = window.confirm(
-      'Xác nhận học viên đã hoàn thành khóa học?\n\n' +
-      'Hệ thống sẽ giải ngân khoản tiền đang giữ ' +
-      'cho gia sư và chuyển phí nền tảng.'
-    );
-
-    if (!confirmed) return;
-
-    setProcessingId(enrollment.id);
-    setErrorMsg('');
-
-    try {
-      await courseApi.completeEnrollment(enrollment.id);
-
-      setSuccessMsg(
-        'Đã hoàn thành khóa học và giải ngân tiền cho gia sư!'
-      );
-
-      await loadData();
-
-      if (onWalletUpdated) {
-        await onWalletUpdated();
-      }
-
-    } catch (error) {
-      setErrorMsg(
-        error.data?.message ||
-        error.message ||
-        'Không thể hoàn thành khóa học.'
       );
     } finally {
       setProcessingId(null);
@@ -811,22 +772,6 @@ export default function TutorCoursePackageManager({
                                     Trạng thái: {enrollment.status}
                                   </div>
                                 </div>
-
-                                {enrollment.status === 'ACTIVE' &&
-                                  Number(enrollment.pricePaid) > 0 && (
-                                  <button
-                                    disabled={processingId === enrollment.id}
-                                    onClick={() =>
-                                      handleCompleteEnrollment(enrollment)
-                                    }
-                                    style={primaryButton}
-                                  >
-                                    {processingId === enrollment.id
-                                      ? <Loader2 size={15} />
-                                      : <CheckCircle2 size={15} />}
-                                    Xác nhận hoàn thành
-                                  </button>
-                                )}
 
                                 {enrollment.status === 'PENDING' && (
                                   <span style={{

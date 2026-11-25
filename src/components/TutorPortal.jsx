@@ -411,8 +411,6 @@ export default function TutorPortal({
     }
   };
 
-
-  // Gia sư xác nhận hoàn thành khóa học và giải ngân tiền
   const handleCompleteEnrollment = async (enrollment) => {
     const courseId = viewingEnrollmentsCourse?.id;
 
@@ -420,9 +418,7 @@ export default function TutorPortal({
       return;
     }
 
-    if (!window.confirm(
-      'Xác nhận khóa học đã hoàn thành? Tiền sẽ được giải ngân vào ví gia sư.'
-    )) {
+    if (!window.confirm('Xác nhận học viên đã hoàn thành khóa học?')) {
       return;
     }
 
@@ -433,33 +429,21 @@ export default function TutorPortal({
 
       const updatedEnrollments =
         await courseApi.getEnrollmentsByCourse(courseId, 0, 10);
-
       const updated = updatedEnrollments || [];
 
-      setEnrollments(prev => ({
-        ...prev,
+      setEnrollments((currentEnrollments) => ({
+        ...currentEnrollments,
         [courseId]: updated
       }));
-
-      setViewingEnrollmentsCourse(prev =>
-        prev?.id === courseId
-          ? { ...prev, students: updated }
-          : prev
+      setViewingEnrollmentsCourse((currentCourse) =>
+        currentCourse?.id === courseId
+          ? { ...currentCourse, students: updated }
+          : currentCourse
       );
-
-      showNotice(
-        'Khóa học đã hoàn thành. Thu nhập đã được giải ngân vào ví!'
-      );
-
-      if (onWalletUpdated) {
-        await onWalletUpdated();
-      }
-
+      showNotice('Đã xác nhận hoàn thành khóa học.');
     } catch (err) {
       showNotice(
-        err.data?.message ||
-        err.message ||
-        'Không thể hoàn thành khóa học và giải ngân.',
+        err.data?.message || err.message || 'Không thể cập nhật trạng thái khóa học.',
         true
       );
     } finally {
@@ -2939,9 +2923,9 @@ export default function TutorPortal({
                               e.status === 'ACTIVE' ? '#1d4ed8' : '#475569'
                           }}>
                             {e.status === 'COMPLETED'
-                              ? 'Đã hoàn thành / Đã giải ngân'
+                              ? 'Đã hoàn thành'
                               : e.status === 'ACTIVE'
-                                ? 'Đã thanh toán / Đang giữ tiền'
+                                ? 'Đã thanh toán'
                                 : e.status === 'PENDING'
                                   ? 'Chờ thanh toán'
                                   : e.status || 'Không xác định'}
@@ -2962,6 +2946,7 @@ export default function TutorPortal({
                                 <button
                                   onClick={() => handleCompleteEnrollment(e)}
                                   disabled={processingId === e.id}
+                                  title="Cập nhật trạng thái sau khi học viên hoàn thành khóa học"
                                   style={{
                                     padding: '5px 10px',
                                     borderRadius: 6,
@@ -2970,12 +2955,12 @@ export default function TutorPortal({
                                     color: '#ffffff',
                                     fontSize: '0.78rem',
                                     fontWeight: 700,
-                                    cursor: 'pointer'
+                                    cursor: processingId === e.id ? 'wait' : 'pointer'
                                   }}
                                 >
                                   {processingId === e.id
                                     ? 'Đang xử lý...'
-                                    : 'Hoàn thành & giải ngân'}
+                                    : 'Xác nhận hoàn thành'}
                                 </button>
                             )}
 

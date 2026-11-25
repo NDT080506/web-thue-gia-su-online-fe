@@ -372,8 +372,7 @@ export const courseApi = {
     );
   },
 
-  // Gia sư xác nhận hoàn thành khóa học
-  // Backend sẽ giải ngân tiền escrow tại đây
+  // Gia sư cập nhật trạng thái ghi danh sau khi khóa học hoàn thành
   completeEnrollment: async (enrollmentId) => {
     return await request(
       `/course-enrollments/tutor/${enrollmentId}/complete`,
