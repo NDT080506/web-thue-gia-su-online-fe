@@ -9,23 +9,17 @@ export default function TutorCard({ tutor, onBookTutor, onChatTutor }) {
   return (
     <div className="ud-tutor-card">
       <div className="ud-tutor-header">
-        <div className="ud-tutor-avatar-wrapper">
-          {tutor.avatar ? (
-            <img src={tutor.avatar} alt={tutor.name} className="ud-tutor-avatar" />
-          ) : (
-            <div className="ud-tutor-avatar" aria-label={tutor.name}>
-              {tutor.name?.charAt(0) || '?'}
-            </div>
-          )}
-          {tutor.isVerified && (
-            <span className="ud-verified-badge" title="Gia sư đã được xác minh bằng cấp">
-              <CheckCircle size={16} />
-            </span>
-          )}
-        </div>
-
         <div className="ud-tutor-meta">
-          <h3 className="ud-tutor-name">{tutor.name}</h3>
+          <h3 className="ud-tutor-name">
+            {tutor.name}
+            {tutor.isVerified && (
+              <CheckCircle
+                size={16}
+                title="Gia sư đã được xác minh bằng cấp"
+                style={{ marginLeft: 6, verticalAlign: 'middle', color: '#137333' }}
+              />
+            )}
+          </h3>
           {tutor.title && <p className="ud-tutor-title">{tutor.title}</p>}
           {tutor.degree && (
             <p className="ud-tutor-degree">

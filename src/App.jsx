@@ -621,11 +621,12 @@ export default function App() {
         ...existingTutor,
         id: tutorId,
         name:
+          currentUser.displayName ||
           profile?.displayName ||
           profile?.userName ||
           profile?.name ||
           existingTutor?.name ||
-          currentUser.displayName,
+          'Gia sư',
         bio: profile?.bio || existingTutor?.bio || '',
         subjects: subjects.length > 0 ? subjects : existingTutor?.subjects || [],
         avatar: profile?.avatarUrl || existingTutor?.avatar || '',

@@ -857,31 +857,7 @@
 .ud-tutor-header {
   display: flex;
   align-items: flex-start;
-  gap: 18px;
   margin-bottom: 16px;
-}
-
-.ud-tutor-avatar-wrapper {
-  position: relative;
-  flex-shrink: 0;
-}
-
-.ud-tutor-avatar {
-  width: 76px;
-  height: 76px;
-  border-radius: 50%;
-  object-fit: cover;
-  border: 2px solid var(--border-light);
-}
-
-.ud-verified-badge {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  background-color: #ffffff;
-  color: #137333;
-  border-radius: 50%;
-  display: flex;
 }
 
 .ud-tutor-meta {
