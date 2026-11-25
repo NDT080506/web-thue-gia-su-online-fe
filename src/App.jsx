@@ -24,8 +24,6 @@ import TutorPortal from './components/TutorPortal';
 import PaymentCheckoutModal from './components/PaymentCheckoutModal';
 import WalletTopUpModal from './components/WalletTopUpModal';
 import TutorApplicationModal from './components/TutorApplicationModal';
-import CreatePackageModal from './components/CreatePackageModal';
-import TutorCoursePackageManager from './components/TutorCoursePackageManager';
 import {
   authApi,
   articleApi,
@@ -43,7 +41,7 @@ import {
   parseJwtPayload
 } from './services/api';
 import { formatCourseFromBackend } from './utils/courseAdapter';
-import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck, PlusCircle } from 'lucide-react';
+import { GraduationCap, ArrowRight, Wifi, WifiOff, ShieldCheck } from 'lucide-react';
 import './App.css';
 
 function removeVietnameseTones(str) {
@@ -95,9 +93,6 @@ export default function App() {
   }, []);
 
   const [tutorApplicationModalOpen, setTutorApplicationModalOpen] = useState(false);
-  const [createPackageModalOpen, setCreatePackageModalOpen] = useState(false);
-  const [tutorManagementOpen, setTutorManagementOpen] = useState(false);
-  const [createPackageInitialTab, setCreatePackageInitialTab] = useState('package');
   const [notificationCount, setNotificationCount] = useState(0);
 
   // Wallet & Payment Checkout State
@@ -569,101 +564,6 @@ export default function App() {
     }
   };
 
-  // Tải lại các gói dịch vụ của tất cả gia sư
-  const loadTutorPackages = async () => {
-    await fetchTutorsAndPackages(currentUser);
-  };
-
-  const handlePackageCreated = async (createdPackage) => {
-    await loadTutorPackages();
-
-    if (currentUser?.role !== 'TUTOR' || !currentUser.id || !createdPackage) {
-      return;
-    }
-
-    let profile = null;
-    try {
-      profile = await tutorProfileApi.getMyProfile();
-    } catch (err) {
-      console.warn('Lỗi lấy hồ sơ để cập nhật thẻ gia sư:', err.message);
-    }
-
-    const tutorId = createdPackage.tutorId || profile?.userId || currentUser.id;
-    const newPackage = {
-      ...createdPackage,
-      tutorId
-    };
-    const profileSubjects = profile?.subjectsCanTeach || '';
-    const subjects = Array.isArray(profileSubjects)
-      ? profileSubjects
-      : String(profileSubjects)
-          .split(/[,;\n]/)
-          .map((item) => item.trim())
-          .filter(Boolean);
-
-    setTutors((currentTutors) => {
-      const tutorIndex = currentTutors.findIndex(
-        (tutor) => String(tutor.id) === String(tutorId)
-      );
-      const existingTutor = tutorIndex >= 0 ? currentTutors[tutorIndex] : null;
-      const existingPackages = existingTutor?.packages || [];
-      const packageIndex = newPackage.id
-        ? existingPackages.findIndex(
-            (pkg) => String(pkg.id) === String(newPackage.id)
-          )
-        : -1;
-      const packages = packageIndex >= 0
-        ? existingPackages.map((pkg, index) =>
-            index === packageIndex ? newPackage : pkg
-          )
-        : [...existingPackages, newPackage];
-      const tutor = {
-        ...existingTutor,
-        id: tutorId,
-        name:
-          currentUser.displayName ||
-          profile?.displayName ||
-          profile?.userName ||
-          profile?.name ||
-          existingTutor?.name ||
-          'Gia sư',
-        bio: profile?.bio || existingTutor?.bio || '',
-        subjects: subjects.length > 0 ? subjects : existingTutor?.subjects || [],
-        avatar: profile?.avatarUrl || existingTutor?.avatar || '',
-        rating: profile?.rating ?? existingTutor?.rating ?? null,
-        packages
-      };
-
-      if (tutorIndex < 0) {
-        return [...currentTutors, tutor];
-      }
-
-      return currentTutors.map((item, index) =>
-        index === tutorIndex ? tutor : item
-      );
-    });
-  };
-
-  // Fetch latest courses from Backend
-  const fetchCourses = async () => {
-    try {
-      const realCourses = await courseApi.getCourses();
-
-      const formatted = Array.isArray(realCourses)
-        ? realCourses
-            .map(course => formatCourseFromBackend(course))
-            .filter(Boolean)
-        : [];
-
-      setCourses(formatted);
-      setCoursesLoadError(false);
-    } catch (err) {
-      console.error('Lỗi tải khóa học:', err);
-      setCourses([]);
-      setCoursesLoadError(true);
-    }
-  };
-
   // Handle Auth open
   const handleOpenAuth = (mode) => {
     setAuthMode(mode);
@@ -682,27 +582,6 @@ export default function App() {
     }
 
     return true;
-  };
-
-  // Open Create Package / Course Modal for Tutor
-  const handleOpenCreatePackage = (tab = 'package') => {
-    if (!handleRequireRole(['TUTOR'], 'Chức năng này chỉ dành cho gia sư.')) return;
-    setCreatePackageInitialTab(tab);
-    setCreatePackageModalOpen(true);
-  };
-
-  const handleOpenTutorManagement = () => {
-    if (!currentUser) {
-      handleOpenAuth('login');
-      return;
-    }
-
-    if (currentUser.role !== 'TUTOR') {
-      alert('Chức năng chỉ dành cho gia sư.');
-      return;
-    }
-
-    setTutorManagementOpen(true);
   };
 
   const handleOpenProtectedService = (openService, allowedRoles, deniedMessage) => {
@@ -1241,10 +1120,6 @@ export default function App() {
             onOpenChat={(student) => {
               handleOpenChatWithStudent(student);
             }}
-            onOpenCreatePackage={() => {
-              setCreatePackageInitialTab('package');
-              setCreatePackageModalOpen(true);
-            }}
           />
 
           {/* Modal Nhắn tin với học viên khi gọi từ TutorPortal */}
@@ -1260,21 +1135,6 @@ export default function App() {
             currentUser={currentUser}
           />
 
-          {/* Modal Tạo gói/khóa học nếu mở từ TutorPortal */}
-          <CreatePackageModal
-            isOpen={createPackageModalOpen}
-            onClose={() => setCreatePackageModalOpen(false)}
-            currentUser={currentUser}
-            initialTab={createPackageInitialTab}
-            onPackageCreated={async (createdPackage) => {
-              await handlePackageCreated(createdPackage);
-              loadUserNotifications(currentUser);
-            }}
-            onCourseCreated={async () => {
-              await fetchCourses();
-              loadUserNotifications(currentUser);
-            }}
-          />
         </ErrorBoundary>
       );
     } else {
@@ -1440,8 +1300,6 @@ export default function App() {
         onSelectCourse={(course) => setSelectedCourse(course)}
         onSelectTutor={(tutor) => handleBookTutor(tutor)}
         onOpenTutorApplication={() => setTutorApplicationModalOpen(true)}
-        onOpenCreatePackage={handleOpenCreatePackage}
-        onOpenTutorManagement={handleOpenTutorManagement}
       />
 
       <main>
@@ -1469,8 +1327,6 @@ export default function App() {
           onToggleWishlist={handleToggleWishlist}
           searchKeyword={searchKeyword}
           onClearSearch={() => setSearchKeyword('')}
-          currentUser={currentUser}
-          onOpenCreateCourse={() => handleOpenCreatePackage('course')}
         />
 
         {/* 5. Featured 1-on-1 Tutors Section */}
@@ -1487,30 +1343,6 @@ export default function App() {
                 </p>
               </div>
               <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-                {currentUser?.role === 'TUTOR' && (
-                  <button
-                    type="button"
-                    onClick={() => handleOpenCreatePackage('package')}
-                    style={{
-                      display: 'inline-flex',
-                      alignItems: 'center',
-                      gap: 6,
-                      background: 'linear-gradient(135deg, #7e22ce 0%, #a855f7 100%)',
-                      color: '#fff',
-                      padding: '8px 16px',
-                      borderRadius: 6,
-                      fontWeight: 700,
-                      fontSize: '0.85rem',
-                      border: 'none',
-                      cursor: 'pointer',
-                      boxShadow: '0 2px 6px rgba(126, 34, 206, 0.25)'
-                    }}
-                    title="Tạo gói dịch vụ môi giới / dạy kèm 1-1 mới"
-                  >
-                    <PlusCircle size={16} />
-                    <span>Tạo gói dịch vụ 1-1</span>
-                  </button>
-                )}
                 <button className="ud-view-all-btn">
                   Xem tất cả gia sư <ArrowRight size={16} />
                 </button>
@@ -1604,7 +1436,6 @@ export default function App() {
         onOpenChat={handleOpenChatWithStudent}
         onOpenCheckout={handleOpenCheckout}
         onWalletUpdated={() => loadUserWallet(currentUser)}
-        onOpenCreatePackage={() => handleOpenCreatePackage('package')}
       />
 
       <ChatModal
@@ -1707,32 +1538,6 @@ export default function App() {
         onOpenAdmin={() => {
           setIsAdminView(true);
           window.location.hash = 'admin';
-        }}
-      />
-
-      <CreatePackageModal
-        isOpen={createPackageModalOpen}
-        onClose={() => setCreatePackageModalOpen(false)}
-        currentUser={currentUser}
-        initialTab={createPackageInitialTab}
-        onPackageCreated={async (createdPackage) => {
-          await handlePackageCreated(createdPackage);
-          loadUserNotifications(currentUser);
-        }}
-        onCourseCreated={() => {
-          fetchCourses();
-          loadUserNotifications(currentUser);
-        }}
-      />
-
-      <TutorCoursePackageManager
-        isOpen={tutorManagementOpen}
-        onClose={() => setTutorManagementOpen(false)}
-        currentUser={currentUser}
-        onWalletUpdated={() => loadUserWallet(currentUser)}
-        onDataChanged={async () => {
-          await fetchCourses();
-          await loadTutorPackages();
         }}
       />
 

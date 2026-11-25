@@ -15,8 +15,7 @@ import {
   MessageCircle,
   ShieldCheck,
   Wallet,
-  ArrowRight,
-  PlusCircle
+  ArrowRight
 } from 'lucide-react';
 import { categories } from '../data/categories';
 
@@ -56,9 +55,7 @@ export default function Navbar({
   tutors = [],
   onSelectCourse = null,
   onSelectTutor = null,
-  onOpenTutorApplication = null,
-  onOpenCreatePackage = null,
-  onOpenTutorManagement = null
+  onOpenTutorApplication = null
 }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [showCategories, setShowCategories] = useState(false);
@@ -607,67 +604,6 @@ export default function Navbar({
                 </button>
               )}
 
-              {/* Tutor Create Package / Course Button - Only visible for TUTOR */}
-              {currentUser?.role === 'TUTOR' && (
-                <button
-                  onClick={() => {
-                    if (onOpenCreatePackage) onOpenCreatePackage();
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: '#f3e8ff',
-                    color: '#7e22ce',
-                    border: '1px solid #d8b4fe',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                    whiteSpace: 'nowrap',
-                    flexShrink: 0
-                  }}
-                  title="Tạo gói dịch vụ môi giới hoặc khóa học online mới"
-                >
-                  <PlusCircle size={15} />
-                  <span className="hide-mobile">Tạo gói / Khóa học</span>
-                </button>
-              )}
-
-              {/* DÁN NÚT QUẢN LÝ NỘI DUNG VÀO ĐÂY */}
-              {currentUser?.role === 'TUTOR' && (
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (onOpenTutorManagement) {
-                      onOpenTutorManagement();
-                    }
-                  }}
-                  style={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 6,
-                    background: '#eff6ff',
-                    color: '#1d4ed8',
-                    border: '1px solid #bfdbfe',
-                    borderRadius: 6,
-                    padding: '6px 12px',
-                    fontSize: '0.8rem',
-                    fontWeight: 700,
-                    cursor: 'pointer',
-                    whiteSpace: 'nowrap'
-                  }}
-                  title="Quản lý khóa học, gói môi giới và học viên"
-                >
-                  <BookOpen size={15} />
-                  <span className="hide-mobile">
-                    Quản lý nội dung
-                  </span>
-                </button>
-              )}            
-
               {/* User Profile or Auth Buttons */}
               {currentUser ? (
                 <div
@@ -811,14 +747,6 @@ export default function Navbar({
                             )}
                           </button>
 
-                          <button
-                            className="menu-item"
-                            onClick={() => { setShowUserMenu(false); if (onOpenCreatePackage) onOpenCreatePackage(); }}
-                            style={{ width: '100%', textAlign: 'left', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 10, color: '#7e22ce', fontWeight: 600 }}
-                          >
-                            <PlusCircle size={16} color="#7e22ce" />
-                            <span>Tạo gói dịch vụ & Khóa học</span>
-                          </button>
                         </>
                       ) : currentUser.role === 'STUDENT' ? (
                         <button

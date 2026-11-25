@@ -72,8 +72,7 @@ export default function TutorPortal({
   onWalletUpdated,
   onBackToClient,
   onLogout,
-  onOpenChat,
-  onOpenCreatePackage
+  onOpenChat
 }) {
   const [activeTab, setActiveTab] = useState('overview');
 

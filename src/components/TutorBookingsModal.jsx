@@ -17,8 +17,7 @@ import {
   ShieldCheck,
   CreditCard,
   Check,
-  Sparkles,
-  PlusCircle
+  Sparkles
 } from 'lucide-react';
 import { bookingApi } from '../services/api';
 
@@ -28,8 +27,7 @@ export default function TutorBookingsModal({
   currentUser,
   onOpenChat,
   onOpenCheckout,
-  onWalletUpdated,
-  onOpenCreatePackage
+  onWalletUpdated
 }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -152,28 +150,6 @@ export default function TutorBookingsModal({
             </p>
           </div>
 
-          {isTutor && onOpenCreatePackage && (
-            <button
-              onClick={onOpenCreatePackage}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 8,
-                padding: '10px 18px',
-                borderRadius: 8,
-                background: '#fff',
-                color: '#7e22ce',
-                border: '2px solid #7e22ce',
-                fontWeight: 700,
-                fontSize: '0.88rem',
-                cursor: 'pointer',
-                boxShadow: '0 2px 8px rgba(126, 34, 206, 0.15)',
-                transition: 'all 0.15s ease'
-              }}
-            >
-              <PlusCircle size={16} /> Tạo gói dịch vụ & Khóa học mới
-            </button>
-          )}
         </div>
 
         {/* Modal Content */}
