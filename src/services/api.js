@@ -105,6 +105,7 @@ export const authApi = {
   login: async (displayName, password) => {
     const res = await request('/auth/login', {
       method: 'POST',
+      skipAuth: true,
       body: JSON.stringify({ displayName, password }),
     });
     // Backend Spring Boot returns result.accessToken
@@ -119,7 +120,7 @@ export const authApi = {
   },
 
   // POST /users (Register requires email, password, displayName, role)
-  egister: async (userData) => {
+  register: async (userData) => {
     return await request('/users', {
       method: 'POST',
       body: JSON.stringify({
