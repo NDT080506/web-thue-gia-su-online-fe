@@ -579,6 +579,15 @@ export default function App() {
     setAuthModalOpen(true);
   };
 
+  const handleOpenProtectedService = (openService) => {
+    if (!currentUser) {
+      handleOpenAuth('login');
+      return;
+    }
+
+    openService();
+  };
+
   const handleLoginSuccess = async (user) => {
     setCurrentUser(user);
     if (user?.role === 'ADMIN') {
@@ -1257,11 +1266,11 @@ export default function App() {
         wishlistCount={wishlistItems.length}
         notificationCount={notificationCount}
         conversationCount={conversationCount}
-        onOpenBookings={() => setTutorBookingsModalOpen(true)}
-        onOpenCart={() => setCartModalOpen(true)}
-        onOpenWishlist={() => setWishlistModalOpen(true)}
+        onOpenBookings={() => handleOpenProtectedService(() => setTutorBookingsModalOpen(true))}
+        onOpenCart={() => handleOpenProtectedService(() => setCartModalOpen(true))}
+        onOpenWishlist={() => handleOpenProtectedService(() => setWishlistModalOpen(true))}
         userWallet={userWallet}
-        onOpenWallet={() => setWalletModalOpen(true)}
+        onOpenWallet={() => handleOpenProtectedService(() => setWalletModalOpen(true))}
         onOpenConversations={() => {
           if (!currentUser) {
             handleOpenAuth('login');
