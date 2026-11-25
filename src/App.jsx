@@ -205,7 +205,7 @@ export default function App() {
 
   // Lấy giỏ hàng & danh sách yêu thích từ CSDL
   const loadCartAndWishlist = async (user) => {
-    if (!user) {
+    if (user?.role !== 'STUDENT') {
       setCartItems([]);
       setWishlistItems([]);
       return;
@@ -549,12 +549,29 @@ export default function App() {
     }
   };
 
-  // Open Create Package / Course Modal for Tutor
-  const handleOpenCreatePackage = (tab = 'package') => {
+  // Handle Auth open
+  const handleOpenAuth = (mode) => {
+    setAuthMode(mode);
+    setAuthModalOpen(true);
+  };
+
+  const handleRequireRole = (allowedRoles, deniedMessage) => {
     if (!currentUser) {
       handleOpenAuth('login');
-      return;
+      return false;
     }
+
+    if (!allowedRoles.includes(currentUser.role)) {
+      alert(deniedMessage);
+      return false;
+    }
+
+    return true;
+  };
+
+  // Open Create Package / Course Modal for Tutor
+  const handleOpenCreatePackage = (tab = 'package') => {
+    if (!handleRequireRole(['TUTOR'], 'Chức năng này chỉ dành cho gia sư.')) return;
     setCreatePackageInitialTab(tab);
     setCreatePackageModalOpen(true);
   };
@@ -573,15 +590,14 @@ export default function App() {
     setTutorManagementOpen(true);
   };
 
-  // Handle Auth open
-  const handleOpenAuth = (mode) => {
-    setAuthMode(mode);
-    setAuthModalOpen(true);
-  };
-
-  const handleOpenProtectedService = (openService) => {
+  const handleOpenProtectedService = (openService, allowedRoles, deniedMessage) => {
     if (!currentUser) {
       handleOpenAuth('login');
+      return;
+    }
+
+    if (allowedRoles && !allowedRoles.includes(currentUser.role)) {
+      alert(deniedMessage);
       return;
     }
 
@@ -635,10 +651,7 @@ export default function App() {
 
   // ==================== CART ACTIONS (CSDL PostgreSQL) ====================
   const handleAddToCart = async (course) => {
-    if (!currentUser) {
-      handleOpenAuth('login');
-      return;
-    }
+    if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể sử dụng giỏ hàng.')) return;
     try {
       await cartApi.addToCart(course.id);
       await loadCartAndWishlist(currentUser);
@@ -649,6 +662,7 @@ export default function App() {
   };
 
   const handleRemoveFromCart = async (courseId) => {
+    if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể sử dụng giỏ hàng.')) return;
     try {
       await cartApi.removeFromCart(courseId);
       await loadCartAndWishlist(currentUser);
@@ -658,6 +672,7 @@ export default function App() {
   };
 
   const handleClearCart = async () => {
+    if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể sử dụng giỏ hàng.')) return;
     if (!confirm('Bạn có chắc chắn muốn xóa toàn bộ khóa học trong giỏ hàng?')) return;
     try {
       await cartApi.clearCart();
@@ -668,6 +683,7 @@ export default function App() {
   };
 
   const handleCheckoutCart = async () => {
+      if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể thanh toán khóa học trong giỏ hàng.')) return;
       try {
           // 1. Backend tạo hoặc lấy lại các enrollment PENDING
           const enrollments = await cartApi.checkout();
@@ -772,10 +788,7 @@ export default function App() {
 
   // ==================== WISHLIST ACTIONS (CSDL PostgreSQL) ====================
   const handleToggleWishlist = async (courseId) => {
-    if (!currentUser) {
-      handleOpenAuth('login');
-      return;
-    }
+    if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể sử dụng danh sách yêu thích.')) return;
     const isWishlisted = wishlistItems.some(w => w.courseId === courseId);
     try {
       if (isWishlisted) {
@@ -790,6 +803,7 @@ export default function App() {
   };
 
   const handleRemoveFromWishlist = async (courseId) => {
+    if (!handleRequireRole(['STUDENT'], 'Chỉ học viên mới có thể sử dụng danh sách yêu thích.')) return;
     try {
       await wishlistApi.removeFromWishlist(courseId);
       await loadCartAndWishlist(currentUser);
@@ -1266,9 +1280,21 @@ export default function App() {
         wishlistCount={wishlistItems.length}
         notificationCount={notificationCount}
         conversationCount={conversationCount}
-        onOpenBookings={() => handleOpenProtectedService(() => setTutorBookingsModalOpen(true))}
-        onOpenCart={() => handleOpenProtectedService(() => setCartModalOpen(true))}
-        onOpenWishlist={() => handleOpenProtectedService(() => setWishlistModalOpen(true))}
+        onOpenBookings={() => handleOpenProtectedService(
+          () => setTutorBookingsModalOpen(true),
+          ['STUDENT', 'TUTOR'],
+          'Chức năng này chỉ dành cho học viên và gia sư.'
+        )}
+        onOpenCart={() => handleOpenProtectedService(
+          () => setCartModalOpen(true),
+          ['STUDENT'],
+          'Chỉ học viên mới có thể mở giỏ hàng.'
+        )}
+        onOpenWishlist={() => handleOpenProtectedService(
+          () => setWishlistModalOpen(true),
+          ['STUDENT'],
+          'Chỉ học viên mới có thể mở danh sách yêu thích.'
+        )}
         userWallet={userWallet}
         onOpenWallet={() => handleOpenProtectedService(() => setWalletModalOpen(true))}
         onOpenConversations={() => {
