@@ -524,8 +524,9 @@ export default function App() {
         const name =
           tutor.displayName ||
           tutor.name ||
-          (String(viewer?.id) === String(tutorId) ? viewer?.displayName : '');
-        if (!tutorId || !name) return [];
+          (String(viewer?.id) === String(tutorId) ? viewer?.displayName : '') ||
+          'Gia sư';
+        if (!tutorId) return [];
 
         const subjects = Array.isArray(tutor.subjectsCanTeach)
           ? tutor.subjectsCanTeach
@@ -1134,9 +1135,10 @@ export default function App() {
       return (
         <AdminPortal
           currentUser={currentUser}
-          onBackToClient={() => {
+          onBackToClient={async () => {
             window.location.hash = '';
             setIsAdminView(false);
+            await fetchTutorsAndPackages(currentUser);
           }}
           onLogout={handleLogout}
           onDeleteArticle={handleDeleteArticle}
