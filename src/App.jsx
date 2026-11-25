@@ -37,6 +37,7 @@ import {
   wishlistApi,
   conversationApi,
   walletApi,
+  tutorProfileApi,
   checkBackendHealth,
   getRoleFromToken,
   parseJwtPayload
@@ -429,7 +430,7 @@ export default function App() {
         }
 
         // Đã khai báo savedUser ở đầu hàm
-        await fetchTutorsAndPackages();
+        await fetchTutorsAndPackages(savedUser);
       }
     }
 
@@ -440,7 +441,7 @@ export default function App() {
   }, []);
 
   // Đồng bộ danh sách gia sư và các gói dịch vụ trực tuyến từ Backend (hoàn toàn linh hoạt theo bất kỳ gia sư nào)
-  const fetchTutorsAndPackages = async () => {
+  const fetchTutorsAndPackages = async (viewer = currentUser) => {
     try {
       // 1. Lấy danh sách hồ sơ gia sư
       let realTutors = [];
@@ -452,9 +453,45 @@ export default function App() {
           'Lỗi lấy danh sách gia sư:',
           err.message
         );
-        setTutors([]);
-        setTutorsLoadError(true);
-        return;
+        if (viewer?.role !== 'TUTOR') {
+          setTutors([]);
+          setTutorsLoadError(true);
+          return;
+        }
+      }
+
+      if (
+        viewer?.role === 'TUTOR' &&
+        viewer.id &&
+        !realTutors.some((tutor) => String(tutor.id || tutor.userId) === String(viewer.id))
+      ) {
+        try {
+          const profile = await tutorProfileApi.getMyProfile();
+          if (!profile) {
+            throw new Error('Không tìm thấy hồ sơ gia sư hiện tại.');
+          }
+          realTutors = [
+            ...realTutors,
+            {
+              ...profile,
+              id: profile.userId || viewer.id,
+              userId: profile.userId || viewer.id,
+              displayName:
+                profile.displayName ||
+                profile.userName ||
+                profile.name ||
+                viewer.displayName,
+              avatarUrl: profile.avatarUrl || viewer.avatarUrl || ''
+            }
+          ];
+        } catch (err) {
+          console.warn('Lỗi lấy hồ sơ gia sư hiện tại:', err.message);
+          if (realTutors.length === 0) {
+            setTutors([]);
+            setTutorsLoadError(true);
+            return;
+          }
+        }
       }
 
       // 2. Lấy ID gia sư
@@ -484,7 +521,10 @@ export default function App() {
 
       const formattedTutors = realTutors.flatMap((tutor) => {
         const tutorId = tutor.id || tutor.userId;
-        const name = tutor.displayName || tutor.name;
+        const name =
+          tutor.displayName ||
+          tutor.name ||
+          (String(viewer?.id) === String(tutorId) ? viewer?.displayName : '');
         if (!tutorId || !name) return [];
 
         const subjects = Array.isArray(tutor.subjectsCanTeach)
@@ -493,7 +533,11 @@ export default function App() {
               .split(/[,;\n]/)
               .map((item) => item.trim())
               .filter(Boolean);
-        const tutorPackages = allPkgs.filter((pkg) => pkg.tutorId === tutorId);
+        const tutorPackages = allPkgs.filter((pkg) => {
+          const packageTutorId =
+            pkg.tutorId || pkg.userId || pkg.tutor?.id || pkg.tutor?.userId;
+          return String(packageTutorId) === String(tutorId);
+        });
 
         return [{
           id: tutorId,
@@ -526,7 +570,7 @@ export default function App() {
 
   // Tải lại các gói dịch vụ của tất cả gia sư
   const loadTutorPackages = async () => {
-    await fetchTutorsAndPackages();
+    await fetchTutorsAndPackages(currentUser);
   };
 
   // Fetch latest courses from Backend
@@ -624,7 +668,7 @@ export default function App() {
     await loadUserNotifications(user);
     await loadCartAndWishlist(user);
     await loadConversationsCount(user);
-    await fetchTutorsAndPackages();
+    await fetchTutorsAndPackages(user);
   };
 
   const handleLogout = async () => {

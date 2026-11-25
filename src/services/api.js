@@ -885,8 +885,14 @@ export const tutorApi = {
     return extractPageContent(res).map((profile) => ({
       id: profile.userId,
       userId: profile.userId,
-      displayName: null,
-      avatarUrl: null,
+      displayName:
+        profile.displayName ||
+        profile.userName ||
+        profile.name ||
+        profile.user?.displayName ||
+        profile.tutor?.displayName ||
+        '',
+      avatarUrl: profile.avatarUrl || profile.user?.avatarUrl || '',
       bio: profile.bio || '',
       subjectsCanTeach: profile.subjectsCanTeach || '',
       rating: profile.rating ?? 5,
