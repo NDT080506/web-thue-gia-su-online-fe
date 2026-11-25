@@ -37,7 +37,7 @@ export function getRoleFromToken(token) {
  */
 async function request(endpoint, options = {}) {
   const { skipAuth = false, ...fetchOptions } = options;
-  const token = localStorage.getItem('token');
+  const token = sessionStorage.getItem('token');
 
   const headers = {
     'Content-Type': 'application/json',
@@ -110,10 +110,10 @@ export const authApi = {
     // Backend Spring Boot returns result.accessToken
     const token = res?.accessToken || res?.token;
     if (token) {
-      localStorage.setItem('token', token);
+      sessionStorage.setItem('token', token);
     }
     if (res?.refreshToken) {
-      localStorage.setItem('refreshToken', res.refreshToken);
+      sessionStorage.setItem('refreshToken', res.refreshToken);
     }
     return res;
   },
@@ -134,7 +134,7 @@ export const authApi = {
   // GET /users (Get current user)
   getMyInfo: async () => {
     const res = await request('/users');
-    const token = localStorage.getItem('token');
+    const token = sessionStorage.getItem('token');
     const tokenRole = getRoleFromToken(token);
     if (res && tokenRole) {
       res.role = tokenRole;
@@ -144,8 +144,8 @@ export const authApi = {
 
   // POST /auth/logout
   logout: async () => {
-    const accessToken = localStorage.getItem('token');
-    const refreshToken = localStorage.getItem('refreshToken');
+    const accessToken = sessionStorage.getItem('token');
+    const refreshToken = sessionStorage.getItem('refreshToken');
 
     try {
       if (!accessToken || !refreshToken) {
@@ -164,18 +164,18 @@ export const authApi = {
       });
 
     } finally {
-      localStorage.removeItem('token');
-      localStorage.removeItem('refreshToken');
+      sessionStorage.removeItem('token');
+      sessionStorage.removeItem('refreshToken');
     }
   },
 
 clearSession: () => {
-  localStorage.removeItem('token');
-  localStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('refreshToken');
 },
 
-  getToken: () => localStorage.getItem('token'),
-  isAuthenticated: () => !!localStorage.getItem('token'),
+  getToken: () => sessionStorage.getItem('token'),
+  isAuthenticated: () => !!sessionStorage.getItem('token'),
 };
 
 /* ==================== 2. ARTICLES & COMMENTS ==================== */
@@ -857,7 +857,7 @@ export const paymentApi = {
 export const tutorApi = {
   getTutors: async (page = 0, size = 10) => {
     // Endpoint này yêu cầu đăng nhập
-    if (!localStorage.getItem('token')) {
+    if (!sessionStorage.getItem('token')) {
       return [];
     }
 
