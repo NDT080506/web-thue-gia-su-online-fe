@@ -17,7 +17,7 @@ export function parseJwtPayload(token) {
         .join('')
     );
     return JSON.parse(jsonPayload);
-  } catch (e) {
+  } catch {
     return null;
   }
 }
@@ -55,7 +55,21 @@ async function request(endpoint, options = {}) {
       headers,
     });
 
-    const data = await res.json().catch(() => null);
+    let data = null;
+    const responseText = await res.text();
+    if (responseText.trim()) {
+      try {
+        data = JSON.parse(responseText);
+      } catch {
+        if (res.ok) {
+          const error = new Error(
+            `API trả về dữ liệu không phải JSON (HTTP ${res.status}).`
+          );
+          error.status = res.status;
+          throw error;
+        }
+      }
+    }
 
     if (!res.ok) {
       const error = new Error(
@@ -123,6 +137,7 @@ export const authApi = {
   register: async (userData) => {
     return await request('/users', {
       method: 'POST',
+      skipAuth: true,
       body: JSON.stringify({
         displayName: userData.displayName,
         email: userData.email,
@@ -305,34 +320,29 @@ export const courseApi = {
 
   // Lấy ghi danh của học viên theo khóa học hiện tại
   getMyEnrollmentByCourse: async (courseId) => {
-    try {
-      let page = 0;
-      let totalPages = 1;
+    let page = 0;
+    let totalPages = 1;
 
-      while (page < totalPages) {
-        const result = await request(
-          withPagination('/course-enrollments/me', page, 10)
-        );
+    while (page < totalPages) {
+      const result = await request(
+        withPagination('/course-enrollments/me', page, 10)
+      );
 
-        const enrollments = extractPageContent(result);
+      const enrollments = extractPageContent(result);
 
-        const enrollment = enrollments.find(
-          item => item.courseId === courseId
-        );
+      const enrollment = enrollments.find(
+        item => item.courseId === courseId
+      );
 
-        if (enrollment) {
-          return enrollment;
-        }
-
-        totalPages = result?.totalPages ?? 1;
-        page++;
+      if (enrollment) {
+        return enrollment;
       }
 
-      return null;
-
-    } catch {
-      return null;
+      totalPages = result?.totalPages ?? 1;
+      page++;
     }
+
+    return null;
   },
 
 
@@ -373,13 +383,28 @@ export const courseApi = {
 };
 
 /* ==================== 4. CONVERSATION & AGREEMENT ==================== */
+const directConversationRequests = new Map();
+
 export const conversationApi = {
   // POST /conversations/direct (Tạo hoặc lấy hội thoại trực tiếp với gia sư)
   createDirect: async (tutorId) => {
-    return await request('/conversations/direct', {
+    const key = `${sessionStorage.getItem('token') || ''}:${tutorId}`;
+    const inFlightRequest = directConversationRequests.get(key);
+    if (inFlightRequest) return inFlightRequest;
+
+    const pendingRequest = request('/conversations/direct', {
       method: 'POST',
       body: JSON.stringify({ tutorId }),
     });
+    directConversationRequests.set(key, pendingRequest);
+
+    try {
+      return await pendingRequest;
+    } finally {
+      if (directConversationRequests.get(key) === pendingRequest) {
+        directConversationRequests.delete(key);
+      }
+    }
   },
 
   // GET /conversations/me (Lấy danh sách cuộc trò chuyện của tôi - Page<ConversationResponse>)
@@ -539,7 +564,8 @@ export const bookingApi = {
 export const checkBackendHealth = async () => {
   try {
     const res = await fetch(`${BASE_URL}/articles?page=0&size=1`, { method: 'GET' });
-    return res.ok;
+    const contentType = res.headers.get('content-type') || '';
+    return res.ok && contentType.includes('json');
   } catch {
     return false;
   }
@@ -608,16 +634,6 @@ export const wishlistApi = {
 
 /* ==================== 10. ADMIN MANAGEMENT ==================== */
 export const adminApi = {
-
-  getActionLogsPage: async (params = {}) => {
-    const query = new URLSearchParams({
-      page: params.page ?? 0,
-      size: params.size ?? 10,
-    });
-
-    return await request(`/admin/action-logs?${query.toString()}`);
-  },
-
   getTransactionsPage: async (page = 0, size = 10) => {
     return await request(
       withPagination('/transactions', page, size)
@@ -788,7 +804,7 @@ export const walletApi = {
   },
 
   // Tương thích các component cũ gọi theo userId -> chuyển sang GET /wallets/user
-  getWalletByUserId: async (_userId) => {
+  getWalletByUserId: async () => {
     return await walletApi.getMyWallet();
   },
 

@@ -79,6 +79,7 @@ export default function CourseDetailModal({
   const [disputeSubmitted, setDisputeSubmitted] = useState(false);
 
   const iframeRef = useRef(null);
+  const currentUserId = currentUser?.id;
 
   // Load lessons & progress whenever modal opens or course changes
   useEffect(() => {
@@ -92,7 +93,7 @@ export default function CourseDetailModal({
     setLessonsLoadError(false);
 
     // 1. Tải danh sách bài học đã hoàn thành từ localStorage
-    const storageKey = `course_completed_lessons_${currentUser?.id || 'guest'}_${course.id}`;
+    const storageKey = `course_completed_lessons_${currentUserId || 'guest'}_${course.id}`;
     try {
       const stored = localStorage.getItem(storageKey);
       if (stored) {
@@ -106,11 +107,11 @@ export default function CourseDetailModal({
     }
 
     // 2. Lấy thông tin tiến độ từ Backend nếu đã đăng nhập và ghi danh
-    if ((isEnrolled || localEnrolled) && currentUser) {
+    if (isEnrolled && currentUserId) {
       courseApi.getMyEnrollmentByCourse(course.id)
         .then((res) => {
           const enrollment = Array.isArray(res)
-            ? res.find((item) => item.studentId === currentUser.id)
+            ? res.find((item) => item.studentId === currentUserId)
             : res;
           if (enrollment) {
             setCurrentEnrollment(enrollment);
@@ -144,7 +145,7 @@ export default function CourseDetailModal({
     }
 
     fetchLessons();
-  }, [isOpen, course?.id, isEnrolled, localEnrolled, currentUser?.id]);
+  }, [isOpen, course?.id, isEnrolled, currentUserId]);
 
   // Lắng nghe sự kiện YouTube IFrame API khi học viên xem hết video
   useEffect(() => {

@@ -828,7 +828,7 @@ export default function App() {
   };
 
   // Chat Tutor (Học viên nhắn tin với Gia sư)
-  const handleChatTutor = (tutor) => {
+  const handleChatTutor = (tutor, conversation = null) => {
     if (!currentUser) {
       handleOpenAuth('login');
       return;
@@ -841,7 +841,7 @@ export default function App() {
 
     setChatTutor(tutor);
     setChatTargetStudent(null);
-    setChatTargetConversation(null);
+    setChatTargetConversation(conversation);
     setChatModalOpen(true);
   };
 

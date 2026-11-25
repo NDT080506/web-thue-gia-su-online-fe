@@ -410,7 +410,7 @@ export default function BookTutorModal({
                 <div style={{ marginTop: 10, textAlign: 'right' }}>
                   <button
                     type="button"
-                    onClick={() => { onClose(); if (onOpenChat) onOpenChat(tutor); }}
+                    onClick={() => { onClose(); if (onOpenChat) onOpenChat(tutor, conversation); }}
                     style={{ background: 'none', border: 'none', color: '#a435f0', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', textDecoration: 'underline' }}
                   >
                     💬 Nhắn tin trao đổi trước với {tutor.name} qua tin nhắn
@@ -477,7 +477,7 @@ export default function BookTutorModal({
                         <button
                           type="button"
                           className="btn btn-primary"
-                          onClick={() => { onClose(); if (onOpenChat) onOpenChat(tutor); }}
+                          onClick={() => { onClose(); if (onOpenChat) onOpenChat(tutor, conversation); }}
                           style={{ fontSize: '0.85rem', padding: '8px 18px', display: 'inline-flex', alignItems: 'center', gap: 6 }}
                         >
                           <MessageCircle size={15} /> Nhắn tin trao đổi ngay
