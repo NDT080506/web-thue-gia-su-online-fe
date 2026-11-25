@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import {
-  Scale,
   Trash2,
   X,
   GraduationCap,
@@ -21,7 +20,7 @@ import {
   Sparkles,
   PlusCircle
 } from 'lucide-react';
-import { bookingApi, disputeApi } from '../services/api';
+import { bookingApi } from '../services/api';
 
 export default function TutorBookingsModal({
   isOpen,
@@ -37,11 +36,6 @@ export default function TutorBookingsModal({
   const [completingId, setCompletingId] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
-  const [disputeModalOpen, setDisputeModalOpen] = useState(false);
-  const [selectedBookingForDispute, setSelectedBookingForDispute] = useState(null);
-  const [disputeReason, setDisputeReason] = useState('');
-  const [disputeEvidence, setDisputeEvidence] = useState('');
-  const [submittingDispute, setSubmittingDispute] = useState(false);
 
   // Format currency VND
   const formatVND = (amount) => {
@@ -127,75 +121,6 @@ export default function TutorBookingsModal({
   // Xóa đơn đã hủy khỏi giao diện hiển thị
   const handleDeleteFromView = (bookingId) => {
     setBookings(prev => prev.filter(b => b.id !== bookingId));
-  };
-
-  // Gửi khiếu nại đơn booking cho Admin
-  const handleSubmitDispute = async () => {
-    if (!selectedBookingForDispute || !disputeReason.trim()) {
-      alert('Vui lòng nhập lý do khiếu nại cụ thể!');
-      return;
-    }
-
-    const evidenceUrl = disputeEvidence.trim();
-    if (evidenceUrl) {
-      try {
-        const parsedEvidenceUrl = new URL(evidenceUrl);
-        if (!['http:', 'https:'].includes(parsedEvidenceUrl.protocol)) {
-          throw new Error('Unsupported evidence URL protocol');
-        }
-      } catch {
-        alert('Link chứng cứ phải là URL hợp lệ bắt đầu bằng http:// hoặc https://.');
-        return;
-      }
-    }
-
-    setSubmittingDispute(true);
-    try {
-      const latestBooking = await bookingApi.getBooking(selectedBookingForDispute.id);
-      if (latestBooking?.status !== 'PENDING_CONFIRMATION') {
-        setBookings((currentBookings) => currentBookings.map((booking) =>
-          booking.id === selectedBookingForDispute.id
-            ? { ...booking, ...latestBooking }
-            : booking
-        ));
-        setDisputeModalOpen(false);
-        alert('Đơn kết nối không còn ở trạng thái đã thanh toán và đang giữ ký quỹ nên không thể khiếu nại.');
-        return;
-      }
-
-      await disputeApi.createDispute({
-        bookingId: selectedBookingForDispute.id,
-        reason: disputeReason.trim(),
-        evidenceUrl
-      });
-      setSuccessMsg('Đã gửi khiếu nại thành công! Vụ việc đang chờ Quản trị viên phân xử.');
-      setDisputeModalOpen(false);
-      await fetchBookings();
-    } catch (err) {
-      console.error('Create dispute failed:', {
-          status: err.status,
-          message: err.message,
-          data: err.data
-      });
-
-      if (err.status === 401 || err.status === 403) {
-          alert('Bạn không có quyền gửi khiếu nại. Vui lòng đăng nhập lại.');
-      } else if (
-        err.status === 400 &&
-        /payment not completed/i.test(err.data?.message || err.message || '')
-      ) {
-          await fetchBookings();
-          alert('Đơn kết nối không còn khoản ký quỹ đủ điều kiện khiếu nại. Danh sách đã được làm mới.');
-      } else if (err.status === 400) {
-          alert('Thông tin khiếu nại không hợp lệ: ' + err.message);
-      } else if (err.status >= 500) {
-          alert('Máy chủ gặp lỗi khi xử lý khiếu nại. Vui lòng thử lại.');
-      } else {
-          alert('Không thể gửi khiếu nại: ' + err.message);
-      }
-    } finally {
-      setSubmittingDispute(false);
-    }
   };
 
   return (
@@ -494,33 +419,6 @@ export default function TutorBookingsModal({
                           </button>
                         )}
 
-                        {/* Nút Khiếu nại */}
-                        {!isTutor && isPaid && (
-                          <button
-                            type="button"
-                            className="btn btn-outline"
-                            style={{
-                              fontSize: '0.82rem',
-                              padding: '6px 12px',
-                              color: '#b45309',
-                              borderColor: '#fcd34d',
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: 5,
-                              background: '#fffbeb'
-                            }}
-                            onClick={() => {
-                              setSelectedBookingForDispute(booking);
-                              setDisputeReason('');
-                              setDisputeEvidence('');
-                              setDisputeModalOpen(true);
-                            }}
-                            title="Gửi khiếu nại nếu thông tin liên hệ gia sư không chính xác hoặc gia sư từ chối nhận dạy"
-                          >
-                            <Scale size={14} /> Khiếu nại
-                          </button>
-                        )}
-
                         {/* Nút Xác nhận hoàn thành & Giải ngân cho Gia sư khi đã thanh toán */}
                         {!isTutor && isPaid && (
                           <button
@@ -573,147 +471,6 @@ export default function TutorBookingsModal({
         </div>
       </div>
 
-      {/* Cửa sổ Popup Gửi Khiếu Nại (Dispute Modal) */}
-      {disputeModalOpen && selectedBookingForDispute && (
-        <div
-          style={{
-            position: 'fixed',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            background: 'rgba(0, 0, 0, 0.65)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 99999,
-            padding: 16
-          }}
-          onClick={() => setDisputeModalOpen(false)}
-        >
-          <div
-            style={{
-              background: '#ffffff',
-              borderRadius: 12,
-              width: '100%',
-              maxWidth: 500,
-              padding: 24,
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.3)',
-              position: 'relative',
-              animation: 'fadeIn 0.2s ease-in-out'
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <Scale size={22} color="#dc2626" />
-                <h3 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: '#0f172a' }}>
-                  Gửi Khiếu Nại Dịch Vụ Môi Giới
-                </h3>
-              </div>
-              <button
-                type="button"
-                onClick={() => setDisputeModalOpen(false)}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b', padding: 4 }}
-              >
-                <X size={20} />
-              </button>
-            </div>
-
-            <p style={{ margin: '0 0 16px', fontSize: '0.86rem', color: '#64748b', lineHeight: 1.5 }}>
-              Nếu thông tin liên hệ gia sư không chính xác, gia sư từ chối nhận dạy hoặc vi phạm cam kết, bạn hãy gửi khiếu nại để Ban quản trị đối chiếu và hỗ trợ đổi gia sư hoặc hoàn phí môi giới.
-            </p>
-
-            <div style={{ marginBottom: 12, background: '#f8fafc', padding: '10px 14px', borderRadius: 6, border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Đơn kết nối: <strong style={{ color: '#0f172a' }}>#{selectedBookingForDispute.id?.substring(0, 8)}...</strong></div>
-              <div style={{ fontSize: '0.8rem', color: '#64748b', marginTop: 2 }}>
-                Gia sư: <strong>{selectedBookingForDispute.tutorName || 'Gia sư chuyên môn'}</strong> • Phí môi giới: <strong style={{ color: '#b45309' }}>{formatVND(selectedBookingForDispute.totalPrice)}</strong>
-              </div>
-            </div>
-
-            <div style={{ marginBottom: 14 }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Lý do khiếu nại (*):
-              </label>
-              <textarea
-                rows={3}
-                required
-                value={disputeReason}
-                onChange={(e) => setDisputeReason(e.target.value)}
-                placeholder="Ví dụ: Đã gọi điện và nhắn tin Zalo cho gia sư theo số được mở khóa nhưng không liên lạc được..."
-                style={{
-                  width: '100%',
-                  padding: '9px 12px',
-                  borderRadius: 6,
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.88rem',
-                  resize: 'vertical',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: 20 }}>
-              <label style={{ display: 'block', fontSize: '0.82rem', fontWeight: 700, color: '#334155', marginBottom: 6 }}>
-                Link chứng cứ đối chứng (Ảnh chụp Zalo, lịch sử cuộc gọi, v.v.):
-              </label>
-              <input
-                type="url"
-                value={disputeEvidence}
-                onChange={(e) => setDisputeEvidence(e.target.value)}
-                placeholder="https://drive.google.com/file/... hoặc link ảnh"
-                style={{
-                  width: '100%',
-                  padding: '8px 12px',
-                  borderRadius: 6,
-                  border: '1px solid #cbd5e1',
-                  fontSize: '0.86rem',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button
-                type="button"
-                onClick={() => setDisputeModalOpen(false)}
-                style={{
-                  padding: '8px 16px',
-                  borderRadius: 6,
-                  border: '1px solid #cbd5e1',
-                  background: '#fff',
-                  cursor: 'pointer',
-                  fontWeight: 600,
-                  fontSize: '0.85rem'
-                }}
-              >
-                Đóng lại
-              </button>
-              <button
-                type="button"
-                disabled={submittingDispute || !disputeReason.trim()}
-                onClick={handleSubmitDispute}
-                style={{
-                  padding: '8px 20px',
-                  borderRadius: 6,
-                  border: 'none',
-                  background: '#dc2626',
-                  color: '#fff',
-                  cursor: (submittingDispute || !disputeReason.trim()) ? 'not-allowed' : 'pointer',
-                  fontWeight: 700,
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 6
-                }}
-              >
-                {submittingDispute ? <Loader2 size={14} className="animate-spin" /> : <Scale size={14} />}
-                Gửi khiếu nại cho Admin
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
