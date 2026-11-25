@@ -573,6 +573,75 @@ export default function App() {
     await fetchTutorsAndPackages(currentUser);
   };
 
+  const handlePackageCreated = async (createdPackage) => {
+    await loadTutorPackages();
+
+    if (currentUser?.role !== 'TUTOR' || !currentUser.id || !createdPackage) {
+      return;
+    }
+
+    let profile = null;
+    try {
+      profile = await tutorProfileApi.getMyProfile();
+    } catch (err) {
+      console.warn('Lỗi lấy hồ sơ để cập nhật thẻ gia sư:', err.message);
+    }
+
+    const tutorId = createdPackage.tutorId || profile?.userId || currentUser.id;
+    const newPackage = {
+      ...createdPackage,
+      tutorId
+    };
+    const profileSubjects = profile?.subjectsCanTeach || '';
+    const subjects = Array.isArray(profileSubjects)
+      ? profileSubjects
+      : String(profileSubjects)
+          .split(/[,;\n]/)
+          .map((item) => item.trim())
+          .filter(Boolean);
+
+    setTutors((currentTutors) => {
+      const tutorIndex = currentTutors.findIndex(
+        (tutor) => String(tutor.id) === String(tutorId)
+      );
+      const existingTutor = tutorIndex >= 0 ? currentTutors[tutorIndex] : null;
+      const existingPackages = existingTutor?.packages || [];
+      const packageIndex = newPackage.id
+        ? existingPackages.findIndex(
+            (pkg) => String(pkg.id) === String(newPackage.id)
+          )
+        : -1;
+      const packages = packageIndex >= 0
+        ? existingPackages.map((pkg, index) =>
+            index === packageIndex ? newPackage : pkg
+          )
+        : [...existingPackages, newPackage];
+      const tutor = {
+        ...existingTutor,
+        id: tutorId,
+        name:
+          profile?.displayName ||
+          profile?.userName ||
+          profile?.name ||
+          existingTutor?.name ||
+          currentUser.displayName,
+        bio: profile?.bio || existingTutor?.bio || '',
+        subjects: subjects.length > 0 ? subjects : existingTutor?.subjects || [],
+        avatar: profile?.avatarUrl || existingTutor?.avatar || '',
+        rating: profile?.rating ?? existingTutor?.rating ?? null,
+        packages
+      };
+
+      if (tutorIndex < 0) {
+        return [...currentTutors, tutor];
+      }
+
+      return currentTutors.map((item, index) =>
+        index === tutorIndex ? tutor : item
+      );
+    });
+  };
+
   // Fetch latest courses from Backend
   const fetchCourses = async () => {
     try {
@@ -1194,8 +1263,8 @@ export default function App() {
             onClose={() => setCreatePackageModalOpen(false)}
             currentUser={currentUser}
             initialTab={createPackageInitialTab}
-            onPackageCreated={() => {
-              loadTutorPackages();
+            onPackageCreated={async (createdPackage) => {
+              await handlePackageCreated(createdPackage);
               loadUserNotifications(currentUser);
             }}
             onCourseCreated={async () => {
@@ -1643,8 +1712,8 @@ export default function App() {
         onClose={() => setCreatePackageModalOpen(false)}
         currentUser={currentUser}
         initialTab={createPackageInitialTab}
-        onPackageCreated={() => {
-          loadTutorPackages();
+        onPackageCreated={async (createdPackage) => {
+          await handlePackageCreated(createdPackage);
           loadUserNotifications(currentUser);
         }}
         onCourseCreated={() => {
