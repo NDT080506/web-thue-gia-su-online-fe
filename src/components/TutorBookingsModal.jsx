@@ -136,16 +136,41 @@ export default function TutorBookingsModal({
       return;
     }
 
+    const evidenceUrl = disputeEvidence.trim();
+    if (evidenceUrl) {
+      try {
+        const parsedEvidenceUrl = new URL(evidenceUrl);
+        if (!['http:', 'https:'].includes(parsedEvidenceUrl.protocol)) {
+          throw new Error('Unsupported evidence URL protocol');
+        }
+      } catch {
+        alert('Link chứng cứ phải là URL hợp lệ bắt đầu bằng http:// hoặc https://.');
+        return;
+      }
+    }
+
     setSubmittingDispute(true);
     try {
+      const latestBooking = await bookingApi.getBooking(selectedBookingForDispute.id);
+      if (latestBooking?.status !== 'PENDING_CONFIRMATION') {
+        setBookings((currentBookings) => currentBookings.map((booking) =>
+          booking.id === selectedBookingForDispute.id
+            ? { ...booking, ...latestBooking }
+            : booking
+        ));
+        setDisputeModalOpen(false);
+        alert('Đơn kết nối không còn ở trạng thái đã thanh toán và đang giữ ký quỹ nên không thể khiếu nại.');
+        return;
+      }
+
       await disputeApi.createDispute({
         bookingId: selectedBookingForDispute.id,
         reason: disputeReason.trim(),
-        evidenceUrl: disputeEvidence.trim() || null
+        evidenceUrl
       });
       setSuccessMsg('Đã gửi khiếu nại thành công! Vụ việc đang chờ Quản trị viên phân xử.');
       setDisputeModalOpen(false);
-      fetchBookings();
+      await fetchBookings();
     } catch (err) {
       console.error('Create dispute failed:', {
           status: err.status,
@@ -155,6 +180,12 @@ export default function TutorBookingsModal({
 
       if (err.status === 401 || err.status === 403) {
           alert('Bạn không có quyền gửi khiếu nại. Vui lòng đăng nhập lại.');
+      } else if (
+        err.status === 400 &&
+        /payment not completed/i.test(err.data?.message || err.message || '')
+      ) {
+          await fetchBookings();
+          alert('Đơn kết nối không còn khoản ký quỹ đủ điều kiện khiếu nại. Danh sách đã được làm mới.');
       } else if (err.status === 400) {
           alert('Thông tin khiếu nại không hợp lệ: ' + err.message);
       } else if (err.status >= 500) {

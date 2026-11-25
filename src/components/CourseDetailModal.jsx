@@ -13,7 +13,7 @@ import {
   Circle,
   Sparkles
 } from 'lucide-react';
-import { courseApi, disputeApi} from '../services/api';
+import { courseApi } from '../services/api';
 
 function getVideoEmbedUrl(url) {
   if (!url) return '';
@@ -75,8 +75,6 @@ export default function CourseDetailModal({
   const [completedLessonIds, setCompletedLessonIds] = useState([]);
   const [autoCompletedAlert, setAutoCompletedAlert] = useState(null);
   const [currentEnrollment, setCurrentEnrollment] = useState(null);
-  const [isSubmittingDispute, setIsSubmittingDispute] = useState(false);
-  const [disputeSubmitted, setDisputeSubmitted] = useState(false);
 
   const iframeRef = useRef(null);
   const currentUserId = currentUser?.id;
@@ -89,7 +87,6 @@ export default function CourseDetailModal({
     setActiveVideoLesson(null);
     setAutoCompletedAlert(null);
     setCurrentEnrollment(null);
-    setDisputeSubmitted(false);
     setLessonsLoadError(false);
 
     // 1. Tải danh sách bài học đã hoàn thành từ localStorage
@@ -179,46 +176,6 @@ export default function CourseDetailModal({
   if (!isOpen || !course) return null;
 
   const effectivelyEnrolled = Boolean(isEnrolled || localEnrolled);
-
-
-  const handleCreateEnrollmentDispute = async () => {
-    if (
-      !currentEnrollment?.id ||
-      currentEnrollment.status !== 'ACTIVE' ||
-      isSubmittingDispute
-    ) {
-      return;
-    }
-
-    const reason = window.prompt(
-      'Nhập lý do khiếu nại về khóa học:'
-    );
-
-    if (!reason || !reason.trim()) return;
-
-    setIsSubmittingDispute(true);
-
-    try {
-      await disputeApi.createDispute({
-        enrollmentId: currentEnrollment.id,
-        reason: reason.trim()
-      });
-
-      setDisputeSubmitted(true);
-
-      window.alert(
-        'Đã gửi khiếu nại. Admin sẽ kiểm tra và xử lý khoản tiền đang được giữ.'
-      );
-
-    } catch (err) {
-      window.alert(
-        'Không thể gửi khiếu nại: ' +
-        (err.data?.message || err.message)
-      );
-    } finally {
-      setIsSubmittingDispute(false);
-    }
-  };
 
 
   const formatVND = (amount) => {
@@ -565,59 +522,6 @@ export default function CourseDetailModal({
                     }}
                   />
                 </div>
-              </div>
-            )}
-
-            {currentUser?.role === 'STUDENT' &&
-            currentEnrollment?.status === 'ACTIVE' && (
-              <div style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                gap: 12,
-                flexWrap: 'wrap',
-                padding: '12px 16px',
-                marginBottom: 20,
-                background: '#fffbeb',
-                border: '1px solid #fde68a',
-                borderRadius: 8
-              }}>
-
-                <span style={{
-                  fontSize: '0.82rem',
-                  color: '#92400e'
-                }}>
-                  Khoản thanh toán của khóa học hiện vẫn đang được hệ thống giữ.
-                </span>
-
-                {disputeSubmitted ? (
-                  <strong style={{
-                    fontSize: '0.82rem',
-                    color: '#92400e'
-                  }}>
-                    Đã gửi khiếu nại
-                  </strong>
-                ) : (
-                  <button
-                    type="button"
-                    onClick={handleCreateEnrollmentDispute}
-                    disabled={isSubmittingDispute}
-                    style={{
-                      padding: '7px 13px',
-                      border: '1px solid #d97706',
-                      borderRadius: 6,
-                      background: '#fff',
-                      color: '#92400e',
-                      fontWeight: 700,
-                      cursor: 'pointer'
-                    }}
-                  >
-                    {isSubmittingDispute
-                      ? 'Đang gửi...'
-                      : '⚖ Khiếu nại khóa học'}
-                  </button>
-                )}
-
               </div>
             )}
 
