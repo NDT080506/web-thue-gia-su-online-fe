@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Star, Check, Heart, ShoppingCart, PlayCircle } from 'lucide-react';
+import { COURSE_PLACEHOLDER_IMAGE } from '../utils/courseAdapter';
 
 export default function CourseCard({ course, onSelectCourse, onAddToCart, isLiked, onToggleWishlist }) {
   const [isHovered, setIsHovered] = useState(false);
@@ -27,7 +28,15 @@ export default function CourseCard({ course, onSelectCourse, onAddToCart, isLike
       <div className="ud-course-card" onClick={() => onSelectCourse && onSelectCourse(course)}>
         {/* Thumbnail */}
         <div className="ud-card-thumbnail-wrapper">
-          {course.thumbnail && <img src={course.thumbnail} alt={course.title} className="ud-card-img" />}
+          <img
+            src={course.thumbnail || COURSE_PLACEHOLDER_IMAGE}
+            alt={course.title}
+            className="ud-card-img"
+            onError={(event) => {
+              event.currentTarget.onerror = null;
+              event.currentTarget.src = COURSE_PLACEHOLDER_IMAGE;
+            }}
+          />
           <div className="ud-card-overlay">
             <span className="ud-play-icon"><PlayCircle size={36} /></span>
           </div>

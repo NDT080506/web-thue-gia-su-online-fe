@@ -27,7 +27,8 @@ export default function TutorBookingsModal({
   currentUser,
   onOpenChat,
   onOpenCheckout,
-  onWalletUpdated
+  onWalletUpdated,
+  onOpenDispute
 }) {
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -49,7 +50,7 @@ export default function TutorBookingsModal({
     try {
       const res = currentUser.role === 'TUTOR'
         ? await bookingApi.getTutorBookings()
-        : await bookingApi.getMyBookings();
+        : await bookingApi.getAllMyBookings();
 
       setBookings(res || []);
     } catch (err) {
@@ -149,6 +150,11 @@ export default function TutorBookingsModal({
                 : `Theo dõi trạng thái thanh toán phí môi giới và thông tin liên hệ gia sư sau khi hoàn tất.`}
             </p>
           </div>
+          {currentUser?.role === 'STUDENT' && (
+            <button type="button" className="btn btn-outline" onClick={() => onOpenDispute({})}>
+              Khiếu nại của tôi
+            </button>
+          )}
 
         </div>
 
@@ -392,6 +398,12 @@ export default function TutorBookingsModal({
                             title="Xóa đơn này khỏi màn hình xem"
                           >
                             <Trash2 size={14} /> Xóa khỏi danh sách
+                          </button>
+                        )}
+
+                        {currentUser?.role === 'STUDENT' && isPaid && (
+                          <button type="button" className="btn btn-outline" onClick={() => onOpenDispute({ bookingId: booking.id })}>
+                            Khiếu nại
                           </button>
                         )}
 

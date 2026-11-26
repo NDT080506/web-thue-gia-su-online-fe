@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import Navbar from './components/Navbar';
 import HeroBanner from './components/HeroBanner';
 import ValueProps from './components/ValueProps';
@@ -13,6 +13,7 @@ import CourseDetailModal from './components/CourseDetailModal';
 import ErrorBoundary from './components/ErrorBoundary';
 import BookTutorModal from './components/BookTutorModal';
 import TutorBookingsModal from './components/TutorBookingsModal';
+import DisputeModal from './components/DisputeModal';
 import ChatModal from './components/ChatModal';
 import CartModal from './components/CartModal';
 import WishlistModal from './components/WishlistModal';
@@ -75,6 +76,7 @@ export default function App() {
   const [selectedArticle, setSelectedArticle] = useState(null);
   const [selectedTutorForBooking, setSelectedTutorForBooking] = useState(null);
   const [tutorBookingsModalOpen, setTutorBookingsModalOpen] = useState(false);
+  const [disputeTarget, setDisputeTarget] = useState(null);
   const [adminDashboardModalOpen, setAdminDashboardModalOpen] = useState(false);
   const [isAdminView, setIsAdminView] = useState(() => {
     return window.location.hash === '#admin';
@@ -98,6 +100,7 @@ export default function App() {
   // Wallet & Payment Checkout State
   const [walletModalOpen, setWalletModalOpen] = useState(false);
   const [userWallet, setUserWallet] = useState({ availableBalance: 0, holdingBalance: 0 });
+  const walletRequest = useRef(0);
   const [checkoutModalOpen, setCheckoutModalOpen] = useState(false);
   const [checkoutData, setCheckoutData] = useState({
     type: 'course',
@@ -186,7 +189,7 @@ export default function App() {
     }
 
     try {
-      const enrollments = await courseApi.getMyEnrollments();
+      const enrollments = await courseApi.getAllMyEnrollments();
       if (enrollments && Array.isArray(enrollments)) {
         setEnrolledCourseIds(
           enrollments
@@ -242,15 +245,27 @@ export default function App() {
   };
 
   // Tải số dư ví của người dùng
-  const loadUserWallet = async (user) => {
+  const loadUserWallet = useCallback(async (user) => {
     if (!user?.id) return;
+    const token = sessionStorage.getItem('token');
+    if (!token) return;
+    const requestId = ++walletRequest.current;
     try {
-      const w = await walletApi.getWalletByUserId(user.id);
-      setUserWallet(w || { availableBalance: 0, holdingBalance: 0 });
+      const wallet = await walletApi.getMyWallet();
+      if (walletRequest.current === requestId && sessionStorage.getItem('token') === token) {
+        setUserWallet(wallet);
+      }
     } catch (err) {
       console.warn('Lỗi tải ví:', err);
     }
-  };
+  }, []);
+
+  useEffect(() => {
+    if (!currentUser?.id) return;
+    const refreshWallet = () => loadUserWallet(currentUser);
+    window.addEventListener('focus', refreshWallet);
+    return () => window.removeEventListener('focus', refreshWallet);
+  }, [currentUser, loadUserWallet]);
 
   // Mở Checkout Modal
   const handleOpenCheckout = ({
@@ -627,6 +642,7 @@ export default function App() {
 
       setCurrentUser(null);
       setUserWallet(null);
+      setDisputeTarget(null);
       setEnrolledCourseIds([]);
       setNotificationCount(0);
       setConversationCount(0);
@@ -1409,6 +1425,7 @@ export default function App() {
           isOpen={!!selectedCourse}
           onClose={() => setSelectedCourse(null)}
           onEnroll={handleEnrollCourse}
+          onOpenDispute={currentUser?.role === 'STUDENT' ? setDisputeTarget : undefined}
           onAddToCart={handleAddToCart}
           isEnrolled={selectedCourse ? enrolledCourseIds.includes(selectedCourse.id) : false}
           currentUser={currentUser}
@@ -1436,7 +1453,19 @@ export default function App() {
         onOpenChat={handleOpenChatWithStudent}
         onOpenCheckout={handleOpenCheckout}
         onWalletUpdated={() => loadUserWallet(currentUser)}
+        onOpenDispute={setDisputeTarget}
       />
+
+      {disputeTarget && currentUser?.role === 'STUDENT' && (
+        <DisputeModal
+          {...disputeTarget}
+          onClose={() => {
+            setDisputeTarget(null);
+            loadUserWallet(currentUser);
+            loadUserEnrollments(currentUser);
+          }}
+        />
+      )}
 
       <ChatModal
         isOpen={chatModalOpen}
@@ -1521,13 +1550,15 @@ export default function App() {
               cartCheckoutIndex < cartCheckoutQueue.length - 1
           }
           onOpenTopUp={() => setWalletModalOpen(true)}
+          walletTopUpOpen={walletModalOpen}
+          onWalletUpdated={() => loadUserWallet(currentUser)}
       />
 
       <WalletTopUpModal
         isOpen={walletModalOpen}
         onClose={() => setWalletModalOpen(false)}
         currentUser={currentUser}
-        onWalletUpdated={(w) => setUserWallet(w)}
+        onWalletUpdated={() => loadUserWallet(currentUser)}
       />
 
       <TutorApplicationModal

@@ -28,6 +28,8 @@ export default function PaymentCheckoutModal({
   currentUser = null,
   onSuccess = null,
   onOpenTopUp = null,
+  walletTopUpOpen = false,
+  onWalletUpdated,
   onContinue = null,
   hasNextPayment = false
 }) {
@@ -47,7 +49,7 @@ export default function PaymentCheckoutModal({
       setPaymentSuccess(null);
       setErrorMsg('');
 
-      if (!isOpen || !currentUser?.id) {
+      if (!isOpen || walletTopUpOpen || !currentUser?.id) {
           return;
       }
 
@@ -55,6 +57,7 @@ export default function PaymentCheckoutModal({
 
       async function fetchWallet() {
           setIsLoadingWallet(true);
+          setWallet(null);
 
           try {
               const w = await walletApi.getMyWallet();
@@ -85,6 +88,7 @@ export default function PaymentCheckoutModal({
       };
   }, [
       isOpen,
+      walletTopUpOpen,
       currentUser?.id,
       enrollmentId,
       bookingId,
@@ -95,8 +99,7 @@ export default function PaymentCheckoutModal({
 
   const totalAmount = amount || (type === 'course' ? item?.price : item?.totalPrice) || 0;
   const availableBalance = wallet?.availableBalance || 0;
-  const holdingBalance = wallet?.holdingBalance || 0;
-  const isBalanceSufficient = availableBalance >= totalAmount;
+  const isBalanceSufficient = wallet !== null && availableBalance >= totalAmount;
   const missingAmount = Math.max(0, totalAmount - availableBalance);
 
   // Quick 1-click top-up right inside checkout
@@ -120,6 +123,7 @@ export default function PaymentCheckoutModal({
 
       // 3. Confirm deposit so balance is actually credited
       await walletApi.confirmDeposit(depRes.referenceCode);
+      onWalletUpdated?.();
 
       // 4. Re-fetch refreshed wallet balance
       const updatedWallet = await walletApi.getMyWallet();
@@ -419,13 +423,13 @@ export default function PaymentCheckoutModal({
                   <div style={{ textAlign: 'right' }}>
                     <span style={{ fontSize: '0.75rem', color: '#64748b', display: 'block' }}>Số dư khả dụng:</span>
                     <strong style={{ fontSize: '1.25rem', color: isBalanceSufficient ? '#16a34a' : '#dc2626' }}>
-                      {isLoadingWallet ? 'Đang tải...' : formatVND(availableBalance)}
+                      {isLoadingWallet ? 'Đang tải...' : wallet ? formatVND(availableBalance) : 'Chưa tải được số dư'}
                     </strong>
                   </div>
                 </div>
 
                 {/* Insufficient balance warning + 1-Click Top-Up Button */}
-                {!isBalanceSufficient && !isLoadingWallet && (
+                {!isBalanceSufficient && wallet && !isLoadingWallet && (
                   <div style={{
                     background: '#fff1f2',
                     border: '1px solid #fecdd3',

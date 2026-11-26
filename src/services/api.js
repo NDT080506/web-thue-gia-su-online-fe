@@ -113,6 +113,19 @@ function withPagination(endpoint, page = 0, size = 10) {
   return `${endpoint}${separator}page=${page}&size=${size}`;
 }
 
+async function requestAllPages(endpoint) {
+  const items = [];
+  let page = 0;
+  let totalPages;
+  do {
+    const result = await request(withPagination(endpoint, page, 50));
+    items.push(...extractPageContent(result));
+    totalPages = result?.totalPages ?? result?.page?.totalPages ?? 1;
+    page += 1;
+  } while (page < totalPages);
+  return items;
+}
+
 /* ==================== 1. AUTHENTICATION & USERS ==================== */
 export const authApi = {
   // POST /auth/login (Backend requires displayName & password)
@@ -317,6 +330,8 @@ export const courseApi = {
     );
     return extractPageContent(res);
   },
+
+  getAllMyEnrollments: () => requestAllPages('/course-enrollments/me'),
 
   // Lấy ghi danh của học viên theo khóa học hiện tại
   getMyEnrollmentByCourse: async (courseId) => {
@@ -531,6 +546,8 @@ export const bookingApi = {
     return extractPageContent(res);
   },
 
+  getAllMyBookings: () => requestAllPages('/bookings/me'),
+
   // GET /bookings/tutor (Lấy các đơn học viên đặt lịch với gia sư hiện tại)
   getTutorBookings: async (page = 0, size = 10) => {
     const res = await request(
@@ -681,10 +698,9 @@ export const adminApi = {
   },
 
   // GET /admin/disputes (Lấy danh sách khiếu nại tranh chấp cho Admin - Page<DisputeResponse>)
-  getDisputes: async (status, page = 0, size = 10) => {
-    const base = status ? `/admin/disputes?status=${status}` : '/admin/disputes';
-    const res = await request(withPagination(base, page, size));
-    return extractPageContent(res);
+  getDisputes: async (status) => {
+    const base = status ? `/admin/disputes?status=${encodeURIComponent(status)}` : '/admin/disputes';
+    return requestAllPages(base);
   },
 
   // GET /admin/disputes/:id (Xem chi tiết khiếu nại)
@@ -799,7 +815,7 @@ export const walletApi = {
   // Lấy ví NORMAL của user hiện tại (trả về null nếu user chưa tạo ví)
   getMyWallet: async () => {
     const wallets = await walletApi.getMyWallets();
-    return wallets.find((w) => w.type === 'NORMAL') || wallets[0] || null;
+    return wallets.find((w) => w.type === 'NORMAL') || null;
   },
 
   // Tương thích các component cũ gọi theo userId -> chuyển sang GET /wallets/user
@@ -935,10 +951,7 @@ export const disputeApi = {
   },
 
   // GET /disputes/me (Danh sách khiếu nại của học sinh hiện tại - Page<DisputeResponse>)
-  getMyDisputes: async (page = 0, size = 10) => {
-    const res = await request(withPagination('/disputes/me', page, size));
-    return extractPageContent(res);
-  },
+  getMyDisputes: () => requestAllPages('/disputes/me'),
 
   // GET /disputes/:id (Xem chi tiết khiếu nại)
   getMyDispute: async (id) => {

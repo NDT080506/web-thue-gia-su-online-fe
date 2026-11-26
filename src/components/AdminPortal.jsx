@@ -216,6 +216,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
   const [packages, setPackages] = useState([]);
   const [articles, setArticles] = useState([]);
   const [disputes, setDisputes] = useState([]);
+  const [disputeError, setDisputeError] = useState('');
   const [withdrawals, setWithdrawals] = useState([]);
   const [actionLogs, setActionLogs] = useState([]);
   const [actionLogFilter, setActionLogFilter] = useState('');
@@ -258,10 +259,10 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
       // Thử tải disputes & withdrawals nếu có endpoint
       try {
         const dispRes = await adminApi.getDisputes();
-        if (dispRes) setDisputes(dispRes);
+        setDisputes(dispRes);
+        setDisputeError('');
       } catch (e) {
-        // Mock fallback if empty
-        setDisputes([]);
+        setDisputeError(e.message);
       }
 
       try {
@@ -354,8 +355,10 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
     setProcessingId(dispId);
     try {
       const res = await adminApi.approveDispute(dispId);
-      showToast('Đã chấp thuận khiếu nại và tự động hoàn tiền thành công cho học sinh!');
-      setDisputes(prev => prev.map(d => d.id === dispId ? { ...d, status: 'APPROVED', ...(res || {}) } : d));
+      setDisputes(prev => prev.map(d => d.id === dispId ? { ...d, ...res } : d));
+      showToast(res.status === 'REFUND_PENDING'
+        ? 'Đã chấp thuận khiếu nại. Giao dịch đang chờ hoàn tiền.'
+        : 'Đã chấp thuận và hoàn tiền cho học viên.');
     } catch (err) {
       alert('Lỗi phê duyệt khiếu nại: ' + (err.data?.message || err.message));
     } finally {
@@ -370,7 +373,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
     try {
       const res = await adminApi.rejectDispute(dispId);
       showToast('Đã từ chối khiếu nại tranh chấp.');
-      setDisputes(prev => prev.map(d => d.id === dispId ? { ...d, status: 'REJECTED', ...(res || {}) } : d));
+      setDisputes(prev => prev.map(d => d.id === dispId ? { ...d, ...res } : d));
     } catch (err) {
       alert('Lỗi từ chối khiếu nại: ' + (err.data?.message || err.message));
     } finally {
@@ -1546,17 +1549,22 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                   onClick={async () => {
                     try {
                       const res = await adminApi.getDisputes();
-                      if (res) setDisputes(res);
+                      setDisputes(res);
+                      setDisputeError('');
                       showToast('Đã làm mới danh sách khiếu nại!');
-                    } catch (e) {}
+                    } catch (e) {
+                      setDisputeError(e.message);
+                    }
                   }}
+                  disabled={loading || processingId !== null}
                   style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '8px 14px', background: '#fff', border: '1px solid #cbd5e1', borderRadius: 6, cursor: 'pointer', fontSize: '0.85rem', fontWeight: 600, color: '#475569' }}
                 >
                   <RefreshCw size={14} /> Làm mới
                 </button>
               </div>
 
-              {disputes.length === 0 ? (
+              {disputeError && <p role="alert">Không thể tải khiếu nại. {disputeError}</p>}
+              {disputes.length === 0 && (loading || disputeError) ? null : disputes.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '60px 20px', background: '#fff', borderRadius: 10, border: '1px solid #e2e8f0', color: '#64748b' }}>
                   <Scale size={42} style={{ color: '#cbd5e1', margin: '0 auto 12px' }} />
                   <h4 style={{ color: '#1e293b', margin: 0 }}>Không có vụ việc tranh chấp nào cần xử lý</h4>
@@ -1565,7 +1573,8 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   {disputes.map((disp) => {
-                    const isPending = !disp.status || disp.status === 'PENDING' || disp.status === 'UNDER_REVIEW';
+                    const isPending = disp.status === 'UNDER_REVIEW';
+                    const isRefundPending = disp.status === 'REFUND_PENDING';
                     const isApproved = disp.status === 'APPROVED';
                     const isRejected = disp.status === 'REJECTED';
                     const isCancelled = disp.status === 'CANCELLED';
@@ -1611,6 +1620,11 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                                 <Clock size={12} /> Chờ Admin xử lý
                               </span>
                             )}
+                            {isRefundPending && (
+                              <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: '#fef3c7', color: '#b45309' }}>
+                                Chờ hoàn tiền
+                              </span>
+                            )}
                             {isApproved && (
                               <span style={{ fontSize: '0.78rem', fontWeight: 700, padding: '4px 10px', borderRadius: 100, background: '#dcfce7', color: '#16a34a', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                                 <CheckCircle size={12} /> Đã chấp thuận (Đã hoàn tiền)
@@ -1648,7 +1662,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                               </div>
                             )}
 
-                            {(disp.evidenceUrl || disp.proofUrl) && (
+                            {/^https?:\/\//i.test(disp.evidenceUrl || disp.proofUrl || '') && (
                               <a
                                 href={disp.evidenceUrl || disp.proofUrl}
                                 target="_blank"
@@ -1660,12 +1674,11 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                             )}
                           </div>
 
-                          {/* Action buttons chỉ hiển thị khi PENDING */}
-                          {isPending && (
+                          {(isPending || isRefundPending) && (
                             <div style={{ display: 'flex', gap: 10 }}>
                               <button
                                 type="button"
-                                disabled={processingId === disp.id}
+                                disabled={processingId !== null}
                                 onClick={() => handleApproveDispute(disp.id)}
                                 style={{
                                   display: 'inline-flex',
@@ -1682,12 +1695,12 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                                 }}
                               >
                                 {processingId === disp.id ? <Loader2 size={14} className="animate-spin" /> : <CheckCircle2 size={15} />}
-                                Chấp thuận & Hoàn tiền
+                                {isRefundPending ? 'Thử hoàn tiền lại' : 'Chấp thuận & Hoàn tiền'}
                               </button>
 
-                              <button
+                              {isPending && <button
                                 type="button"
-                                disabled={processingId === disp.id}
+                                disabled={processingId !== null}
                                 onClick={() => handleRejectDispute(disp.id)}
                                 style={{
                                   display: 'inline-flex',
@@ -1704,7 +1717,7 @@ export default function AdminPortal({ currentUser, onBackToClient, onLogout, onD
                                 }}
                               >
                                 <XCircle size={15} /> Bác bỏ khiếu nại
-                              </button>
+                              </button>}
                             </div>
                           )}
                         </div>

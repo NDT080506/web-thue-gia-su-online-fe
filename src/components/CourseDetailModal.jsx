@@ -14,6 +14,7 @@ import {
   Sparkles
 } from 'lucide-react';
 import { courseApi } from '../services/api';
+import { COURSE_PLACEHOLDER_IMAGE } from '../utils/courseAdapter';
 
 function getVideoEmbedUrl(url) {
   if (!url) return '';
@@ -60,6 +61,7 @@ export default function CourseDetailModal({
   isOpen,
   onClose,
   onEnroll,
+  onOpenDispute,
   isEnrolled = false,
   currentUser = null,
   onOpenAuth = null,
@@ -658,7 +660,15 @@ export default function CourseDetailModal({
           <div className="detail-sidebar">
             <div className="detail-card-preview">
               <div className="preview-video-box">
-                {course.thumbnail && <img src={course.thumbnail} alt={course.title} className="video-thumb" />}
+                <img
+                  src={course.thumbnail || COURSE_PLACEHOLDER_IMAGE}
+                  alt={course.title}
+                  className="video-thumb"
+                  onError={(event) => {
+                    event.currentTarget.onerror = null;
+                    event.currentTarget.src = COURSE_PLACEHOLDER_IMAGE;
+                  }}
+                />
               </div>
 
               <div className="sidebar-pricing">
@@ -705,6 +715,11 @@ export default function CourseDetailModal({
                       Thêm vào giỏ hàng
                     </button>
                   </div>
+                )}
+                {effectivelyEnrolled && onOpenDispute && (
+                  <button type="button" className="btn btn-outline btn-block" onClick={() => onOpenDispute({ courseId: course.id })}>
+                    Khiếu nại học phí
+                  </button>
                 )}
 
               </div>
