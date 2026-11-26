@@ -24,7 +24,7 @@ export default function PaymentCheckoutModal({
   item = null,     // Course object or Booking/Package object
   enrollmentId = null,
   bookingId = null,
-  amount = 0,
+  amount = null,
   currentUser = null,
   onSuccess = null,
   onOpenTopUp = null,
@@ -39,6 +39,7 @@ export default function PaymentCheckoutModal({
   const [isQuickToppingUp, setIsQuickToppingUp] = useState(false);
   const [paymentSuccess, setPaymentSuccess] = useState(null);
   const [errorMsg, setErrorMsg] = useState('');
+  const [walletNotice, setWalletNotice] = useState('');
 
   const formatVND = (val) => {
     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val || 0);
@@ -48,7 +49,10 @@ export default function PaymentCheckoutModal({
   useEffect(() => {
       setPaymentSuccess(null);
       setErrorMsg('');
+      setWalletNotice('');
+  }, [isOpen, currentUser?.id, enrollmentId, bookingId, type]);
 
+  useEffect(() => {
       if (!isOpen || walletTopUpOpen || !currentUser?.id) {
           return;
       }
@@ -97,37 +101,33 @@ export default function PaymentCheckoutModal({
 
   if (!isOpen) return null;
 
-  const totalAmount = amount || (type === 'course' ? item?.price : item?.totalPrice) || 0;
+  const totalAmount = Number(amount ?? (type === 'course' ? item?.price : item?.totalPrice) ?? 0);
   const availableBalance = wallet?.availableBalance || 0;
-  const isBalanceSufficient = wallet !== null && availableBalance >= totalAmount;
+  const isBalanceSufficient = wallet !== null && totalAmount > 0 && availableBalance >= totalAmount;
   const missingAmount = Math.max(0, totalAmount - availableBalance);
+  const quickTopUpAmount = Math.max(100000, Math.ceil(missingAmount / 50000) * 50000);
+  const isProcessing = isPaying || isQuickToppingUp;
+  const close = () => { if (!isProcessing) onClose(); };
 
   // Quick 1-click top-up right inside checkout
   const handleQuickTopUp = async () => {
-    if (!currentUser) return;
+    if (!currentUser || isProcessing || missingAmount <= 0) return;
     setIsQuickToppingUp(true);
     setErrorMsg('');
+    setWalletNotice('');
     try {
-      // 0. Ensure user has created a NORMAL wallet
-      await walletApi.ensureWallet('NORMAL');
-
-      // Top up missing amount rounded up to nearest 50k or minimum 100k
-      const topUpAmount = Math.max(100000, Math.ceil(missingAmount / 50000) * 50000);
-
-      // 1. Initiate deposit
-      const depRes = await walletApi.createDeposit(topUpAmount);
-      if (!depRes?.referenceCode) throw new Error('Không thể khởi tạo giao dịch nạp tiền');
-
-      // 2. Simulate gateway payment success
-      await mockPaymentApi.simulateSuccess(depRes.referenceCode);
-
-      // 3. Confirm deposit so balance is actually credited
-      await walletApi.confirmDeposit(depRes.referenceCode);
+      const deposit = await mockPaymentApi.topUpWallet(quickTopUpAmount);
+      setWalletNotice(`Đã nạp ${formatVND(deposit.amount)} vào ví.`);
+      setWallet(null);
       onWalletUpdated?.();
 
-      // 4. Re-fetch refreshed wallet balance
-      const updatedWallet = await walletApi.getMyWallet();
-      setWallet(updatedWallet || { availableBalance: 0, holdingBalance: 0 });
+      try {
+        const updatedWallet = await walletApi.getMyWallet();
+        if (!updatedWallet) throw new Error('Không tìm thấy ví đã nạp.');
+        setWallet(updatedWallet);
+      } catch {
+        setErrorMsg('Chưa tải được số dư mới. Mở ví rồi quay lại để cập nhật số dư.');
+      }
     } catch (err) {
       console.error('Nạp nhanh thất bại:', err);
       setErrorMsg('Nạp tiền tự động không thành công: ' + (err.data?.message || err.message));
@@ -138,7 +138,7 @@ export default function PaymentCheckoutModal({
 
   // Process checkout payment
   const handleConfirmPayment = async () => {
-    if (!currentUser) return;
+    if (!currentUser || isProcessing) return;
     if (!isBalanceSufficient) {
       setErrorMsg('Số dư ví không đủ. Vui lòng nạp thêm để thanh toán.');
       return;
@@ -158,6 +158,7 @@ export default function PaymentCheckoutModal({
         res = await paymentApi.payForBooking(targetBookingId);
       }
 
+      if (res?.status !== 'SUCCESS') throw new Error('Máy chủ chưa xác nhận thanh toán thành công.');
       setPaymentSuccess(res);
       // Callback to parent if provided
       if (onSuccess) onSuccess(res);
@@ -170,7 +171,7 @@ export default function PaymentCheckoutModal({
   };
 
   return (
-    <div className="ud-modal-backdrop" onClick={onClose} style={{ zIndex: 1200 }}>
+    <div className="ud-modal-backdrop" onClick={close} style={{ zIndex: 1200 }}>
       <div
         className="ud-detail-modal-card animate-fade-in"
         style={{ maxWidth: 640, padding: 0, overflow: 'hidden' }}
@@ -197,7 +198,8 @@ export default function PaymentCheckoutModal({
           </div>
 
           <button
-            onClick={onClose}
+            onClick={close}
+            disabled={isProcessing}
             style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 6 }}
           >
             <X size={20} />
@@ -235,7 +237,7 @@ export default function PaymentCheckoutModal({
 
               <p style={{ color: '#6a6f73', fontSize: '0.95rem', maxWidth: 460, margin: '0 auto 20px', lineHeight: 1.5 }}>
                 {type === 'course'
-                  ? 'Thanh toán thành công! Khóa học đã được kích hoạt. Tiền học phí đã chuyển vào tài khoản ký quỹ của hệ thống và sẽ được giải ngân cho gia sư sau khi gia sư xác nhận hoàn thành khóa học.'
+                  ? 'Khóa học đã được kích hoạt. Hệ thống đã giải ngân phần thu nhập của gia sư.'
                   : 'Đã thanh toán phí môi giới thành công! Thông tin liên hệ gia sư đã được mở khóa.'}  
               </p>
 
@@ -255,16 +257,16 @@ export default function PaymentCheckoutModal({
                 </div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 8 }}>
                   <span style={{ color: '#64748b' }}>Số tiền đã thanh toán:</span>
-                  <strong style={{ color: '#a435f0' }}>{formatVND(paymentSuccess.amount || totalAmount)}</strong>
+                  <strong style={{ color: '#a435f0' }}>{formatVND(paymentSuccess.amount ?? totalAmount)}</strong>
                 </div>
-                {type === 'course' && (
+                {type === 'booking' && (
                   <div style={{
                     display: 'flex',
                     justifyContent: 'space-between',
                     marginBottom: 8
                   }}>
                     <span style={{ color: '#64748b' }}>
-                      Tiền đang ký quỹ:
+                      Tổng số dư đang ký quỹ:
                     </span>
 
                     <strong style={{ color: '#d97706' }}>
@@ -428,8 +430,8 @@ export default function PaymentCheckoutModal({
                   </div>
                 </div>
 
-                {/* Insufficient balance warning + 1-Click Top-Up Button */}
-                {!isBalanceSufficient && wallet && !isLoadingWallet && (
+                {walletNotice && <p className="auth-alert success" role="status">{walletNotice}</p>}
+                {missingAmount > 0 && wallet && !isLoadingWallet && (
                   <div style={{
                     background: '#fff1f2',
                     border: '1px solid #fecdd3',
@@ -452,7 +454,7 @@ export default function PaymentCheckoutModal({
                       type="button"
                       className="btn btn-primary"
                       onClick={handleQuickTopUp}
-                      disabled={isQuickToppingUp}
+                      disabled={isProcessing}
                       style={{
                         padding: '6px 14px',
                         fontSize: '0.82rem',
@@ -469,11 +471,16 @@ export default function PaymentCheckoutModal({
                         </>
                       ) : (
                         <>
-                          <PlusCircle size={14} /> Nạp nhanh {formatVND(Math.max(100000, Math.ceil(missingAmount / 50000) * 50000))}
+                          <PlusCircle size={14} /> Nạp nhanh {formatVND(quickTopUpAmount)}
                         </>
                       )}
                     </button>
                   </div>
+                )}
+                {onOpenTopUp && !isLoadingWallet && (!wallet || missingAmount > 0) && (
+                  <button type="button" className="btn btn-outline" onClick={onOpenTopUp} disabled={isProcessing} style={{ marginTop: 10 }}>
+                    Mở ví để nạp tiền
+                  </button>
                 )}
               </div>
 
@@ -481,7 +488,8 @@ export default function PaymentCheckoutModal({
               <div style={{ display: 'flex', gap: 12 }}>
                 <button
                   className="btn btn-outline"
-                  onClick={onClose}
+                  onClick={close}
+                  disabled={isProcessing}
                   style={{ flex: 1, padding: '12px 18px', fontSize: '0.95rem' }}
                 >
                   Hủy bỏ
@@ -490,7 +498,7 @@ export default function PaymentCheckoutModal({
                 <button
                   className="btn btn-primary"
                   onClick={handleConfirmPayment}
-                  disabled={!isBalanceSufficient || isPaying || isLoadingWallet}
+                  disabled={!isBalanceSufficient || isProcessing || isLoadingWallet}
                   style={{
                     flex: 2,
                     padding: '12px 18px',

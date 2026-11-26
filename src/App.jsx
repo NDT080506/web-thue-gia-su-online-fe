@@ -296,6 +296,12 @@ export default function App() {
       }
 
       if (currentUser) {
+          walletRequest.current += 1;
+          setUserWallet((wallet) => ({
+              ...wallet,
+              availableBalance: result.availableBalance,
+              holdingBalance: result.holdingBalance,
+          }));
           await Promise.all([
               loadUserWallet(currentUser),
               loadUserNotifications(currentUser),
@@ -902,15 +908,7 @@ export default function App() {
     }
 
     try {
-      if (course.price === 0) {
-        await courseApi.enrollCourse(course.id);
-        setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
-        alert(`🎉 Chúc mừng! Bạn đã đăng ký thành công khóa học miễn phí "${course.title}".`);
-        return true;
-      }
-
-      const myEnrolls = await courseApi.getMyEnrollments();
-      const enrollment = (myEnrolls || []).find(e => e.courseId === course.id);
+      const enrollment = await courseApi.getMyEnrollmentByCourse(course.id);
 
       if (enrollment) {
         if (enrollment.status === 'ACTIVE' || enrollment.status === 'COMPLETED') {
@@ -919,21 +917,33 @@ export default function App() {
           return true;
         }
 
+        if (enrollment.status !== 'PENDING') {
+          alert('Ghi danh này hiện không thể thanh toán.');
+          return false;
+        }
         handleOpenCheckout({
           type: 'course',
           item: course,
           enrollmentId: enrollment.id,
-          amount: course.price
+          amount: enrollment.pricePaid ?? course.price
         });
         return false;
       }
 
       const res = await courseApi.enrollCourse(course.id);
+      if (res?.status === 'ACTIVE') {
+        setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
+        alert(`🎉 Chúc mừng! Bạn đã đăng ký thành công khóa học miễn phí "${course.title}".`);
+        return true;
+      }
+      if (!res?.id || res.status !== 'PENDING') {
+        throw new Error('Máy chủ chưa tạo ghi danh chờ thanh toán.');
+      }
       handleOpenCheckout({
         type: 'course',
         item: course,
-        enrollmentId: res?.id,
-        amount: course.price
+        enrollmentId: res.id,
+        amount: res.pricePaid ?? course.price
       });
       return false;
     } catch (err) {
@@ -941,21 +951,17 @@ export default function App() {
       if (errMsg.includes('already enrolled') || errMsg.includes('đã đăng ký') || err?.status === 400) {
         // Thử mở checkout nếu có pending
         try {
-          const myEnrolls = await courseApi.getMyEnrollments();
-          const pending = (myEnrolls || []).find(e => e.courseId === course.id && e.status === 'PENDING');
-          const active = (myEnrolls || []).find(e =>
-            e.courseId === course.id && (e.status === 'ACTIVE' || e.status === 'COMPLETED')
-          );
-          if (pending) {
+          const existing = await courseApi.getMyEnrollmentByCourse(course.id);
+          if (existing?.status === 'PENDING') {
             handleOpenCheckout({
               type: 'course',
               item: course,
-              enrollmentId: pending.id,
-              amount: course.price
+              enrollmentId: existing.id,
+              amount: existing.pricePaid ?? course.price
             });
             return false;
           }
-          if (active) {
+          if (existing?.status === 'ACTIVE' || existing?.status === 'COMPLETED') {
             setEnrolledCourseIds(prev => [...new Set([...prev, course.id])]);
             alert(`Bạn đã ghi danh khóa học "${course.title}" rồi.`);
             return true;

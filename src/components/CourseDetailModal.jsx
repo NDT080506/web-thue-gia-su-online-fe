@@ -717,7 +717,7 @@ export default function CourseDetailModal({
                   </div>
                 )}
                 {effectivelyEnrolled && onOpenDispute && (
-                  <button type="button" className="btn btn-outline btn-block" onClick={() => onOpenDispute({ courseId: course.id })}>
+                  <button type="button" className="btn btn-outline btn-block" onClick={() => onOpenDispute({ courseId: course.id, targetLabel: course.title })}>
                     Khiếu nại học phí
                   </button>
                 )}

@@ -353,7 +353,7 @@ export const courseApi = {
         return enrollment;
       }
 
-      totalPages = result?.totalPages ?? 1;
+      totalPages = result?.totalPages ?? result?.page?.totalPages ?? 1;
       page++;
     }
 
@@ -808,7 +808,7 @@ export const walletApi = {
 
   // GET /wallets/user (BE Optimize01 trả về Page<WalletResponse>)
   getMyWallets: async (page = 0, size = 20) => {
-    const res = await request(withPagination('/wallets/user', page, size));
+    const res = await request(withPagination('/wallets/user', page, size), { cache: 'no-store' });
     return extractPageContent(res);
   },
 
@@ -853,6 +853,19 @@ export const walletApi = {
 
 /* ==================== 12. MOCK PAYMENT GATEWAY ==================== */
 export const mockPaymentApi = {
+  topUpWallet: async (amount) => {
+    const deposit = await walletApi.createDeposit(amount);
+    if (!deposit?.referenceCode) {
+      throw new Error('Không nhận được mã giao dịch nạp tiền.');
+    }
+    await mockPaymentApi.simulateSuccess(deposit.referenceCode);
+    const confirmed = await walletApi.confirmDeposit(deposit.referenceCode);
+    if (confirmed?.status !== 'SUCCESS') {
+      throw new Error('Máy chủ chưa ghi nhận giao dịch nạp tiền thành công.');
+    }
+    return confirmed;
+  },
+
   // POST /mock-payments/:referenceCode/success
   simulateSuccess: async (referenceCode) => {
     return await request(`/mock-payments/${referenceCode}/success`, {

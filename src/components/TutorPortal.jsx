@@ -697,7 +697,7 @@ export default function TutorPortal({
 
           {/* Quick Wallet Button */}
           <button
-            onClick={() => setActiveTab('finance')}
+            onClick={() => { setActiveTab('finance'); onWalletUpdated?.(); }}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -956,7 +956,7 @@ export default function TutorPortal({
             Tài chính & Hồ sơ
           </div>
           <button
-            onClick={() => { setActiveTab('finance'); setSearchTerm(''); }}
+            onClick={() => { setActiveTab('finance'); setSearchTerm(''); onWalletUpdated?.(); }}
             style={{
               display: 'flex',
               alignItems: 'center',

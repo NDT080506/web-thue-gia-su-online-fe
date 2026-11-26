@@ -45,6 +45,8 @@ export default function WalletTopUpModal({
       if (onWalletUpdated) onWalletUpdated(data || { availableBalance: 0, holdingBalance: 0 });
     } catch (err) {
       console.warn('Lỗi lấy thông tin ví:', err);
+      setErrorMsg('Chưa tải được số dư ví. Vui lòng bấm Làm mới.');
+      onWalletUpdated?.();
     } finally {
       setIsLoading(false);
     }
@@ -80,6 +82,7 @@ export default function WalletTopUpModal({
   const currentAmount = customAmount ? parseInt(customAmount, 10) || 0 : selectedAmount;
 
   const handleDeposit = async () => {
+    if (isSubmitting || isCreatingWallet || isLoading) return;
     if (currentAmount < 50000) {
       setErrorMsg('Số tiền nạp tối thiểu là 50.000 ₫');
       return;
@@ -90,30 +93,10 @@ export default function WalletTopUpModal({
     setSuccessMessage('');
 
     try {
-      // 0. Đảm bảo user đã tạo ví NORMAL (gọi POST /wallets nếu chưa có)
-      if (!wallet) {
-        const ensured = await walletApi.ensureWallet('NORMAL');
-        setWallet(ensured);
-      }
-
-      // 1. Tạo yêu cầu nạp tiền (POST /wallet/deposits)
-      const depRes = await walletApi.createDeposit(currentAmount);
-      const refCode = depRes?.referenceCode;
-      if (!refCode) {
-        throw new Error('Không nhận được mã tham chiếu giao dịch từ máy chủ.');
-      }
-
-      // 2. Giả lập thanh toán qua cổng ngân hàng (POST /mock-payments/{refCode}/success)
-      await mockPaymentApi.simulateSuccess(refCode);
-
-      // 3. Xác nhận giao dịch để cộng tiền vào ví (POST /wallet/deposits/{refCode}/confirm)
-      await walletApi.confirmDeposit(refCode);
-
-      // 4. Cập nhật lại số dư ví
-      await fetchWallet();
-
-      setSuccessMessage(`Đã nạp thành công ${formatVND(currentAmount)} vào ví EduTutor!`);
+      const deposit = await mockPaymentApi.topUpWallet(currentAmount);
+      setSuccessMessage(`Đã nạp thành công ${formatVND(deposit.amount)} vào ví EduTutor!`);
       setCustomAmount('');
+      await fetchWallet();
     } catch (err) {
       console.error('Lỗi khi nạp tiền:', err);
       setErrorMsg('Nạp tiền thất bại: ' + (err.data?.message || err.message));
@@ -121,9 +104,10 @@ export default function WalletTopUpModal({
       setIsSubmitting(false);
     }
   };
+  const close = () => { if (!isSubmitting && !isCreatingWallet) onClose(); };
 
   return (
-    <div className="ud-modal-backdrop" onClick={onClose} style={{ zIndex: 1250 }}>
+    <div className="ud-modal-backdrop" onClick={close} style={{ zIndex: 1250 }}>
       <div 
         className="ud-detail-modal-card animate-fade-in" 
         style={{ maxWidth: 580, padding: 0, overflow: 'hidden' }} 
@@ -146,7 +130,8 @@ export default function WalletTopUpModal({
           </div>
 
           <button 
-            onClick={onClose}
+            onClick={close}
+            disabled={isSubmitting || isCreatingWallet}
             style={{ background: 'none', border: 'none', color: '#fff', cursor: 'pointer', padding: 6 }}
           >
             <X size={20} />
@@ -186,7 +171,7 @@ export default function WalletTopUpModal({
               <button
                 type="button"
                 onClick={handleCreateWallet}
-                disabled={isCreatingWallet}
+                disabled={isCreatingWallet || isSubmitting}
                 className="btn btn-primary"
                 style={{ padding: '8px 14px', fontSize: '0.84rem', whiteSpace: 'nowrap' }}
               >
@@ -210,7 +195,7 @@ export default function WalletTopUpModal({
               </span>
               <button 
                 onClick={fetchWallet} 
-                disabled={isLoading}
+                disabled={isLoading || isSubmitting || isCreatingWallet}
                 title="Cập nhật số dư"
                 style={{ background: 'rgba(255,255,255,0.1)', border: 'none', color: '#fff', padding: '4px 8px', borderRadius: 4, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 4, fontSize: '0.75rem' }}
               >
@@ -331,7 +316,7 @@ export default function WalletTopUpModal({
             type="button"
             className="btn btn-primary btn-block btn-lg"
             onClick={handleDeposit}
-            disabled={isSubmitting || currentAmount <= 0}
+            disabled={isSubmitting || isCreatingWallet || isLoading || currentAmount <= 0}
             style={{ 
               padding: '14px', 
               fontSize: '1rem', 

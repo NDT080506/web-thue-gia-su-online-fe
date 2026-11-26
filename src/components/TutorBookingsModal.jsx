@@ -402,7 +402,7 @@ export default function TutorBookingsModal({
                         )}
 
                         {currentUser?.role === 'STUDENT' && isPaid && (
-                          <button type="button" className="btn btn-outline" onClick={() => onOpenDispute({ bookingId: booking.id })}>
+                          <button type="button" className="btn btn-outline" onClick={() => onOpenDispute({ bookingId: booking.id, targetLabel: booking.packageName })}>
                             Khiếu nại
                           </button>
                         )}

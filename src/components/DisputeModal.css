@@ -1,0 +1,249 @@
+.dispute-dialog {
+  width: min(580px, calc(100% - 24px));
+  max-height: calc(100dvh - 24px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  color: #1e293b;
+  background: #fff;
+  box-shadow: 0 20px 64px #0f172a40;
+}
+
+.dispute-dialog::backdrop {
+  background: #0f172a80;
+}
+
+.dispute-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.dispute-header-icon,
+.dispute-close {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  border: 0;
+  border-radius: 10px;
+}
+
+.dispute-header-icon {
+  color: #6d28d9;
+  background: #ede9fe;
+}
+
+.dispute-close {
+  margin-left: auto;
+  color: #475569;
+  background: transparent;
+  cursor: pointer;
+}
+
+.dispute-close:hover {
+  background: #e2e8f0;
+}
+
+.dispute-header h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.dispute-header p {
+  margin: 4px 0 0;
+  color: #64748b;
+  font-size: 0.875rem;
+}
+
+.dispute-body {
+  display: grid;
+  gap: 16px;
+  padding: 20px 24px 24px;
+}
+
+.dispute-target,
+.dispute-record-heading,
+.dispute-record-actions,
+.dispute-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 12px;
+}
+
+.dispute-target {
+  justify-content: space-between;
+  padding: 12px 14px;
+  border: 1px solid #ddd6fe;
+  border-radius: 8px;
+  background: #f5f3ff;
+  font-size: 0.875rem;
+}
+
+.dispute-target code {
+  color: #6d28d9;
+}
+
+.dispute-content,
+.dispute-history,
+.dispute-form {
+  display: grid;
+  gap: 10px;
+}
+
+.dispute-content {
+  gap: 20px;
+}
+
+.dispute-form label {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.dispute-form label span {
+  color: #b91c1c;
+}
+
+.dispute-form label small {
+  margin-left: 4px;
+  color: #64748b;
+  font-weight: 400;
+}
+
+.dispute-form textarea,
+.dispute-form input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: inherit;
+  background: #fff;
+  font: inherit;
+}
+
+.dispute-form textarea {
+  min-height: 105px;
+  resize: vertical;
+  margin-bottom: 4px;
+}
+
+.dispute-form :is(input, textarea):focus-visible,
+.dispute-dialog button:focus-visible {
+  outline: 2px solid #7c3aed;
+  outline-offset: 2px;
+}
+
+.dispute-evidence {
+  position: relative;
+}
+
+.dispute-evidence svg {
+  position: absolute;
+  top: 50%;
+  left: 12px;
+  transform: translateY(-50%);
+  color: #64748b;
+  pointer-events: none;
+}
+
+.dispute-evidence input {
+  padding-left: 38px;
+}
+
+.dispute-form > p,
+.dispute-empty,
+.dispute-record time {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+}
+
+.dispute-actions {
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+
+.dispute-actions .btn,
+.dispute-record-actions a,
+.dispute-empty {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.dispute-history h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+
+.dispute-record {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.875rem;
+}
+
+.dispute-record-heading {
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.dispute-status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  color: #475569;
+  background: #f1f5f9;
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.dispute-status[data-status="UNDER_REVIEW"],
+.dispute-status[data-status="REFUND_PENDING"] {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.dispute-status[data-status="APPROVED"] {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.dispute-status[data-status="REJECTED"] {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.dispute-reason {
+  margin: 8px 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+.dispute-refund {
+  margin: 8px 0;
+  color: #166534;
+  font-weight: 700;
+}
+
+.dispute-record-actions a {
+  color: #5b21b6;
+}
+
+@media (max-width: 480px) {
+  .dispute-header,
+  .dispute-body {
+    padding: 16px;
+  }
+
+  .dispute-actions .btn {
+    justify-content: center;
+    flex: 1;
+  }
+}
